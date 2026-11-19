@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar: pre-token protocols ranked by implied value</title>
+<style>
+/* Token Radar, radar-2 theme. One dark hero, one light canvas, one accent; spacing in steps. */
+:root {
+  --canvas: #f2f5f3;
+  --surface: #ffffff;
+  --ink: #16211c;
+  --ink-soft: #223029;
+  --muted: #5f6f67;
+  --border: #d8e2dc;
+  --accent: #0f7a5a;
+  --accent-soft: #e3f2ec;
+  --gold: #b98a1d;
+  --negative: #b23b2e;
+  --radius-control: 8px;
+  --radius-panel: 14px;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: ui-monospace, "SF Mono", Menlo, monospace;
+  --step-1: 4px;
+  --step-2: 8px;
+  --step-3: 12px;
+  --step-4: 16px;
+  --step-5: 24px;
+  --step-6: 32px;
+  --step-7: 48px;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--font-body);
+  text-wrap: pretty;
+}
+h1, h2, h3 { margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h1 { font-size: 30px; line-height: 1.15; font-weight: 600; }
+h2 { font-size: 20px; line-height: 1.2; font-weight: 600; }
+h3 { font-size: 16px; line-height: 1.25; font-weight: 600; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+.skip {
+  position: absolute; left: -9999px; top: 0; padding: var(--step-2) var(--step-4);
+  background: var(--surface); border: 1px solid var(--border); z-index: 20;
+}
+.skip:focus { left: var(--step-4); top: var(--step-4); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell { max-width: 1320px; margin: 0 auto; padding: 0 var(--step-6) var(--step-7); }
+.hero { background: var(--ink); color: #eef4f0; margin: 0 calc(-1 * var(--step-6)); padding: var(--step-5) var(--step-6) var(--step-6); }
+.hero .top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--step-5); padding-bottom: var(--step-4); }
+.hero .brand-name { color: #9db8ab; }
+.hero .top-meta { color: #9db8ab; }
+.hero h1 { max-width: 22ch; }
+.hero p { color: #c3d4ca; max-width: 62ch; margin-top: var(--step-2); }
+.brand { display: flex; align-items: center; gap: var(--step-3); }
+.mark { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); flex: none; }
+.brand-name { font-family: var(--font-num); font-size: 13px; letter-spacing: 0.02em; color: var(--muted); }
+.top-meta { display: flex; flex-wrap: wrap; gap: var(--step-3); justify-content: flex-end; color: var(--muted); font-size: 13px; }
+.top-meta span { white-space: nowrap; }
+
+.spot { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--step-3); padding: var(--step-5) 0 0; }
+.spot-card { background: var(--ink-soft); border: 1px solid #33463c; border-radius: var(--radius-panel); padding: var(--step-4); display: grid; gap: var(--step-1); cursor: pointer; text-align: left; color: #eef4f0; }
+.spot-card:hover { border-color: var(--accent); }
+.spot-card .rank { font-family: var(--font-num); font-size: 12px; color: var(--gold); }
+.spot-card b { font-size: 15px; }
+.spot-card .num { font-size: 15px; color: #c3d4ca; }
+.spot-card .sub { color: #9db8ab; }
+
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--step-3); padding: var(--step-5) 0 var(--step-4); }
+.fact { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: var(--step-4); display: grid; gap: var(--step-1); }
+.fact b { font-family: var(--font-num); font-size: 19px; font-weight: 600; }
+.fact span { color: var(--muted); font-size: 13px; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--step-3); padding: var(--step-4) 0; border-top: 1px solid var(--border); }
+.field { display: grid; gap: var(--step-1); }
+.field label { color: var(--muted); font-size: 12px; }
+.field input, .field select {
+  min-height: 36px; padding: 0 var(--step-3); border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface); min-width: 180px;
+}
+.field input { min-width: 260px; }
+.check { display: flex; align-items: center; gap: var(--step-2); min-height: 36px; color: var(--muted); font-size: 13px; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.tabs { display: flex; gap: var(--step-1); padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.tabs button { min-height: 30px; padding: 0 var(--step-3); border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.count { margin-left: auto; color: var(--muted); font-size: 13px; align-self: center; }
+
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-panel); overflow: hidden; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: var(--step-3) var(--step-3); border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+th { color: var(--muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
+th button { display: inline-flex; align-items: center; gap: var(--step-1); border: 0; background: none; padding: 0; color: inherit; font: inherit; }
+th button:hover { color: var(--ink); }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--accent-soft); }
+tbody tr[data-selected="true"] { background: var(--accent-soft); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.name { display: grid; gap: 2px; }
+.name b { font-weight: 600; }
+.sub { color: var(--muted); font-size: 12px; }
+.pos { color: var(--accent); }
+.neg { color: var(--negative); }
+.bar { width: 120px; height: 6px; border-radius: 3px; background: #e2ebe6; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.implied { display: flex; align-items: center; gap: var(--step-2); }
+.status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.status.live::before { background: var(--gold); }
+.badge { display: inline-block; font-size: 11px; font-family: var(--font-num); padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.badge.early { background: #f3ead2; color: var(--gold); }
+
+.model { margin-top: var(--step-4); padding: var(--step-5); display: grid; gap: var(--step-3); }
+.formula { font-family: var(--font-num); font-size: 13px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+.sandbox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--step-4); padding-top: var(--step-3); border-top: 1px solid var(--border); }
+.sandbox .field input[type="range"] { width: 100%; min-width: 0; padding: 0; }
+.sandbox output { font-family: var(--font-num); font-size: 13px; }
+.empty { padding: var(--step-7) var(--step-5); text-align: center; display: grid; gap: var(--step-3); justify-items: center; }
+.empty p { color: var(--muted); }
+.button { min-height: 36px; padding: 0 var(--step-4); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+
+.detail {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 94vw); z-index: 10;
+  background: var(--surface); border-left: 1px solid var(--border); padding: var(--step-5);
+  overflow-y: auto; transform: translateX(0); transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+.detail[hidden] { display: none; }
+.detail { margin: 0 0 0 auto; max-height: 100%; }
+.detail::backdrop { background: rgba(22, 33, 28, 0.28); }
+.detail-head { display: flex; align-items: start; justify-content: space-between; gap: var(--step-4); }
+.detail-head > div { min-width: 0; }
+.detail-head .sub { overflow-wrap: anywhere; }
+.close { flex: none; min-width: 32px; min-height: 32px; padding: 0 var(--step-2); white-space: nowrap; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.detail h2 { margin-top: var(--step-1); }
+.detail .sub { margin-top: var(--step-1); }
+.detail-section { margin-top: var(--step-5); padding-top: var(--step-4); border-top: 1px solid var(--border); }
+.detail-section h3 { margin-bottom: var(--step-2); }
+.equation { display: grid; gap: var(--step-2); font-family: var(--font-num); font-size: 13px; }
+.equation div { display: flex; justify-content: space-between; gap: var(--step-3); }
+.equation span { color: var(--muted); }
+.steps { margin: 0; padding-left: var(--step-5); display: grid; gap: var(--step-3); }
+.steps li { padding-left: var(--step-1); }
+.steps b { display: block; font-weight: 500; }
+.cost { color: var(--muted); font-size: 12px; font-family: var(--font-num); }
+
+@media (max-width: 900px) {
+  .shell { padding: 0 var(--step-4) var(--step-4); }
+  .hero { margin: 0 calc(-1 * var(--step-4)); padding: var(--step-4); }
+  .spot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sandbox { grid-template-columns: 1fr; }
+  .field input { min-width: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#board">Skip to the board</a>
+<main id="board" tabindex="-1" aria-busy="true"></main>
+<script>
+window.RADAR={"as_of":"2026-11-14","source":"DefiLlama https://api.llama.fi/protocols, fetched 2026-11-14T01:18:33.201Z","floor_usd":50000000,"model":{"base_multiple":0.25,"growth_weight":0.6,"growth_floor":-60,"growth_cap":120,"maturity_floor":0.6,"maturity_range":0.4,"maturity_days":1095,"unknown_age_days":365,"chain_bonus":0.02,"chain_cap":10},"model_version":"radar-2","watchlist_size":40,"board_size":226,"early_size":186,"live_size":24,"rows":[{"rank":1,"slug":"steakhouse-financial","name":"Steakhouse Financial","category":"Risk Curators","chains":["Base","Ethereum","Robinhood Chain","Arbitrum","Solana","Monad","Arc","Katana","Polygon","Unichain","Corn"],"tvl_usd":2753981495,"change_7d":-2.1935,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":650916469,"growth_multiplier":0.9868,"maturity_multiplier":0.7984,"chain_multiplier":1.2,"watchlist":true},{"rank":2,"slug":"gauntlet","name":"Gauntlet","category":"Risk Curators","chains":["Base","Binance","Ethereum","Arbitrum","Stable","Morph","Solana","Hyperliquid L1","Polygon","Optimism","Unichain","Katana","Arc","Tempo"],"tvl_usd":1577685462,"change_7d":5.645,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":390664812,"growth_multiplier":1.0339,"maturity_multiplier":0.7984,"chain_multiplier":1.2,"watchlist":true},{"rank":3,"slug":"veda","name":"Veda","category":"Onchain Capital Allocator","chains":["Ink","Ethereum","Optimism","Monad","Plasma","Hyperliquid L1","Arbitrum","Base","Berachain","Sonic","Binance","BOB","Scroll"],"tvl_usd":1563415482,"change_7d":-8.2898,"mcap_usd":null,"listed_at":"2025-02-20","age_days":632,"implied_value_usd":370314292,"growth_multiplier":0.9503,"maturity_multiplier":0.8309,"chain_multiplier":1.2,"watchlist":true},{"rank":4,"slug":"usdd","name":"USDD","category":"CDP","chains":["Tron","Ethereum","Binance"],"tvl_usd":1055793606,"change_7d":-2.8062,"mcap_usd":null,"listed_at":"2025-03-13","age_days":611,"implied_value_usd":222167868,"growth_multiplier":0.9832,"maturity_multiplier":0.8232,"chain_multiplier":1.04,"watchlist":true},{"rank":5,"slug":"upshift","name":"Upshift","category":"Onchain Capital Allocator","chains":["Ethereum","Stellar","Flare","Monad","Hyperliquid L1","Avalanche","Solana","Fluent","Base","Citrea","Sui","Plasma","Binance","Mezo","Ink"],"tvl_usd":499083733,"change_7d":8.3117,"mcap_usd":null,"listed_at":"2024-12-04","age_days":710,"implied_value_usd":135084582,"growth_multiplier":1.0499,"maturity_multiplier":0.8594,"chain_multiplier":1.2,"watchlist":true},{"rank":6,"slug":"nonce-capital","name":"Nonce Capital","category":"Risk Curators","chains":["Ethereum","Optimism"],"tvl_usd":513783671,"change_7d":-9.7377,"mcap_usd":null,"listed_at":"2026-09-30","age_days":45,"implied_value_usd":76043920,"growth_multiplier":0.9416,"maturity_multiplier":0.6164,"chain_multiplier":1.02,"watchlist":true},{"rank":7,"slug":"onre","name":"OnRe","category":"RWA","chains":["Solana"],"tvl_usd":308882355,"change_7d":0.1082,"mcap_usd":null,"listed_at":"2025-07-14","age_days":488,"implied_value_usd":60137085,"growth_multiplier":1.0006,"maturity_multiplier":0.7783,"chain_multiplier":1,"watchlist":true},{"rank":8,"slug":"rockawayx","name":"RockawayX","category":"Risk Curators","chains":["Ethereum","Solana","Pharos","Monad","Sei","Base","Binance","Citrea","Etherlink","Plume Mainnet"],"tvl_usd":292506628,"change_7d":-2.5459,"mcap_usd":null,"listed_at":"2026-03-26","age_days":233,"implied_value_usd":58215074,"growth_multiplier":0.9847,"maturity_multiplier":0.6851,"chain_multiplier":1.18,"watchlist":true},{"rank":9,"slug":"bittensor-dtao","name":"Bittensor dTAO","category":"Dexs","chains":["Bittensor"],"tvl_usd":376026255,"change_7d":-6.5592,"mcap_usd":null,"listed_at":"2026-09-19","age_days":56,"implied_value_usd":56031524,"growth_multiplier":0.9606,"maturity_multiplier":0.6205,"chain_multiplier":1,"watchlist":true},{"rank":10,"slug":"symbiotic","name":"Symbiotic","category":"Collateral Markets","chains":["Ethereum"],"tvl_usd":253923299,"change_7d":-12.0318,"mcap_usd":null,"listed_at":"2024-06-11","age_days":886,"implied_value_usd":54401399,"growth_multiplier":0.9278,"maturity_multiplier":0.9237,"chain_multiplier":1,"watchlist":true},{"rank":11,"slug":"opentrade","name":"OpenTrade","category":"RWA","chains":["Avalanche","Ethereum","Plume Mainnet"],"tvl_usd":241501527,"change_7d":-1.642,"mcap_usd":null,"listed_at":"2024-12-06","age_days":708,"implied_value_usd":53382569,"growth_multiplier":0.9901,"maturity_multiplier":0.8586,"chain_multiplier":1.04,"watchlist":true},{"rank":12,"slug":"hyperithm","name":"Hyperithm","category":"Risk Curators","chains":["Monad","Ethereum","Arbitrum","Plasma","Solana","Hyperliquid L1","Katana","Stable","XRPL EVM","Binance"],"tvl_usd":221638535,"change_7d":-4.375,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":50828985,"growth_multiplier":0.9738,"maturity_multiplier":0.7984,"chain_multiplier":1.18,"watchlist":true},{"rank":13,"slug":"plume-vaults","name":"Plume Vaults","category":"RWA","chains":["Ethereum","Plume Mainnet","Solana","Binance","Avalanche"],"tvl_usd":211537977,"change_7d":-3.081,"mcap_usd":null,"listed_at":"2024-10-26","age_days":749,"implied_value_usd":48973920,"growth_multiplier":0.9815,"maturity_multiplier":0.8736,"chain_multiplier":1.08,"watchlist":true},{"rank":14,"slug":"k3-capital","name":"K3 Capital","category":"Risk Curators","chains":["Monad","Ethereum","Optimism","Hyperliquid L1","Plasma","Arbitrum","Binance","Unichain","Avalanche"],"tvl_usd":207711162,"change_7d":-8.9024,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":45521274,"growth_multiplier":0.9466,"maturity_multiplier":0.7984,"chain_multiplier":1.16,"watchlist":true},{"rank":15,"slug":"hive-protocol","name":"Hive Protocol","category":"Chain","chains":["BSquared"],"tvl_usd":198776765,"change_7d":-10.181,"mcap_usd":null,"listed_at":"2024-05-03","age_days":925,"implied_value_usd":43761053,"growth_multiplier":0.9389,"maturity_multiplier":0.9379,"chain_multiplier":1,"watchlist":true},{"rank":16,"slug":"lagoon","name":"Lagoon","category":"Onchain Capital Allocator","chains":["Ethereum","Arbitrum","Base","Binance","Avalanche","Plasma","Hyperliquid L1","TAC","Hemi","Linea","Rayls","Monad","Robinhood Chain","Optimism","Katana","Sonic","Mantle","Arc","Berachain","Flare","Polygon","Unichain","World Chain"],"tvl_usd":151263522,"change_7d":-3.2955,"mcap_usd":null,"listed_at":"2024-12-23","age_days":691,"implied_value_usd":37917160,"growth_multiplier":0.9802,"maturity_multiplier":0.8524,"chain_multiplier":1.2,"watchlist":true},{"rank":17,"slug":"lightning-network","name":"Lightning Network","category":"Payments","chains":["Bitcoin"],"tvl_usd":217862346,"change_7d":-10.1445,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":37510315,"growth_multiplier":0.9391,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":true},{"rank":18,"slug":"clearstar","name":"Clearstar","category":"Risk Curators","chains":["Flare","Base","Ethereum","Monad","Hyperliquid L1","Starknet","Katana","Arbitrum","Hemi","Unichain","Polygon"],"tvl_usd":161773491,"change_7d":-10.0936,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":36399348,"growth_multiplier":0.9394,"maturity_multiplier":0.7984,"chain_multiplier":1.2,"watchlist":true},{"rank":19,"slug":"r25","name":"R25","category":"RWA","chains":["Pharos","Sui"],"tvl_usd":198206607,"change_7d":0.2987,"mcap_usd":null,"listed_at":"2026-04-29","age_days":199,"implied_value_usd":34060698,"growth_multiplier":1.0018,"maturity_multiplier":0.6727,"chain_multiplier":1.02,"watchlist":true},{"rank":20,"slug":"b14g","name":"b14g","category":"Restaking","chains":["Bitcoin","CORE","Babylon Genesis"],"tvl_usd":173941404,"change_7d":-28.5327,"mcap_usd":null,"listed_at":"2024-12-20","age_days":694,"implied_value_usd":31991876,"growth_multiplier":0.8288,"maturity_multiplier":0.8535,"chain_multiplier":1.04,"watchlist":true},{"rank":21,"slug":"saturn","name":"Saturn","category":"Stablecoin Wrapper","chains":["Ethereum","Monad","Binance"],"tvl_usd":154313682,"change_7d":-0.7486,"mcap_usd":null,"listed_at":"2026-04-09","age_days":219,"implied_value_usd":27160116,"growth_multiplier":0.9955,"maturity_multiplier":0.68,"chain_multiplier":1.04,"watchlist":true},{"rank":22,"slug":"lofty","name":"Lofty","category":"RWA","chains":["Algorand"],"tvl_usd":101135900,"change_7d":0.025,"mcap_usd":null,"listed_at":"2022-08-04","age_days":1563,"implied_value_usd":25287768,"growth_multiplier":1.0002,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":true},{"rank":23,"slug":"curvance","name":"Curvance","category":"Lending","chains":["Monad"],"tvl_usd":136345059,"change_7d":0.6775,"mcap_usd":null,"listed_at":"2025-11-27","age_days":352,"implied_value_usd":24935676,"growth_multiplier":1.0041,"maturity_multiplier":0.7286,"chain_multiplier":1,"watchlist":true},{"rank":24,"slug":"galaxy-curation","name":"Galaxy Curation","category":"Risk Curators","chains":["Arc","Ethereum","Base"],"tvl_usd":129994276,"change_7d":11.2334,"mcap_usd":null,"listed_at":"2026-05-21","age_days":177,"implied_value_usd":23978547,"growth_multiplier":1.0674,"maturity_multiplier":0.6647,"chain_multiplier":1.04,"watchlist":true},{"rank":25,"slug":"tydro","name":"Tydro","category":"Lending","chains":["Ink"],"tvl_usd":111314194,"change_7d":-4.8885,"mcap_usd":null,"listed_at":"2025-10-16","age_days":394,"implied_value_usd":20095185,"growth_multiplier":0.9707,"maturity_multiplier":0.7439,"chain_multiplier":1,"watchlist":true},{"rank":26,"slug":"doppler-finance","name":"Doppler Finance","category":"CeDeFi","chains":["Ripple","Ethereum"],"tvl_usd":93316487,"change_7d":-14.4873,"mcap_usd":null,"listed_at":"2025-02-14","age_days":638,"implied_value_usd":18100123,"growth_multiplier":0.9131,"maturity_multiplier":0.8331,"chain_multiplier":1.02,"watchlist":true},{"rank":27,"slug":"ember","name":"Ember","category":"RWA","chains":["Ethereum","Sui","Base","Pharos","Monad","Arbitrum"],"tvl_usd":90012351,"change_7d":-5.9593,"mcap_usd":null,"listed_at":"2025-09-17","age_days":423,"implied_value_usd":18009137,"growth_multiplier":0.9642,"maturity_multiplier":0.7545,"chain_multiplier":1.1,"watchlist":true},{"rank":28,"slug":"armitage-by-wintermute","name":"Armitage by Wintermute","category":"Risk Curators","chains":["Ethereum"],"tvl_usd":103480212,"change_7d":5.7711,"mcap_usd":null,"listed_at":"2026-05-20","age_days":178,"implied_value_usd":17799898,"growth_multiplier":1.0346,"maturity_multiplier":0.665,"chain_multiplier":1,"watchlist":true},{"rank":29,"slug":"valos","name":"Valos","category":"RWA","chains":["Monad"],"tvl_usd":106328133,"change_7d":0.1453,"mcap_usd":null,"listed_at":"2026-07-24","age_days":113,"implied_value_usd":17061349,"growth_multiplier":1.0009,"maturity_multiplier":0.6413,"chain_multiplier":1,"watchlist":true},{"rank":30,"slug":"noble","name":"Noble","category":"Chain","chains":["Noble"],"tvl_usd":83040073,"change_7d":-5.2314,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":14746156,"growth_multiplier":0.9686,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":true},{"rank":31,"slug":"infinifi","name":"infiniFi","category":"Yield","chains":["Ethereum","Monad","Base"],"tvl_usd":70716524,"change_7d":-3.2771,"mcap_usd":null,"listed_at":"2025-05-28","age_days":535,"implied_value_usd":14337514,"growth_multiplier":0.9803,"maturity_multiplier":0.7954,"chain_multiplier":1.04,"watchlist":true},{"rank":32,"slug":"keyrock","name":"Keyrock","category":"Risk Curators","chains":["Arc","Ethereum"],"tvl_usd":83070632,"change_7d":-0.5971,"mcap_usd":null,"listed_at":"2026-09-02","age_days":73,"implied_value_usd":13227129,"growth_multiplier":0.9964,"maturity_multiplier":0.6267,"chain_multiplier":1.02,"watchlist":true},{"rank":33,"slug":"tori-finance","name":"Tori Finance","category":"Basis Trading","chains":["Ethereum"],"tvl_usd":77392441,"change_7d":4.6366,"mcap_usd":null,"listed_at":"2026-06-24","age_days":143,"implied_value_usd":12970633,"growth_multiplier":1.0278,"maturity_multiplier":0.6522,"chain_multiplier":1,"watchlist":true},{"rank":34,"slug":"reti-pooling","name":"Reti Pooling","category":"Staking Pool","chains":["Algorand"],"tvl_usd":65254391,"change_7d":-10.6865,"mcap_usd":null,"listed_at":"2025-01-24","age_days":659,"implied_value_usd":12835927,"growth_multiplier":0.9359,"maturity_multiplier":0.8407,"chain_multiplier":1,"watchlist":true},{"rank":35,"slug":"shift-defi","name":"Shift DeFi","category":"Yield","chains":["Ethereum"],"tvl_usd":47599147,"change_7d":4448.4747,"mcap_usd":null,"listed_at":"2026-09-30","age_days":45,"implied_value_usd":12617034,"growth_multiplier":1.72,"maturity_multiplier":0.6164,"chain_multiplier":1,"watchlist":false},{"rank":36,"slug":"gami-labs","name":"Gami Labs","category":"Risk Curators","chains":["Stellar","Ethereum","Base","Flare","Avalanche","Robinhood Chain","Hemi"],"tvl_usd":63109489,"change_7d":9.0271,"mcap_usd":null,"listed_at":"2026-05-29","age_days":169,"implied_value_usd":12326634,"growth_multiplier":1.0542,"maturity_multiplier":0.6617,"chain_multiplier":1.12,"watchlist":true},{"rank":37,"slug":"tulipa-capital","name":"Tulipa Capital","category":"Risk Curators","chains":["Ethereum","Base","Berachain","Avalanche","BOB","Binance","Monad","TAC"],"tvl_usd":52404471,"change_7d":-9.3511,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":11254672,"growth_multiplier":0.9439,"maturity_multiplier":0.7984,"chain_multiplier":1.14,"watchlist":true},{"rank":38,"slug":"axis","name":"Axis","category":"Basis Trading","chains":["Ethereum"],"tvl_usd":70145354,"change_7d":2.3316,"mcap_usd":null,"listed_at":"2026-08-20","age_days":86,"implied_value_usd":11227619,"growth_multiplier":1.014,"maturity_multiplier":0.6314,"chain_multiplier":1,"watchlist":true},{"rank":39,"slug":"arrakis-modular","name":"Arrakis Modular","category":"Liquidity Manager","chains":["Ethereum","Base","Arbitrum","Plasma","Robinhood Chain","Binance"],"tvl_usd":48488073,"change_7d":-9.91,"mcap_usd":null,"listed_at":"2024-10-23","age_days":752,"implied_value_usd":10969974,"growth_multiplier":0.9405,"maturity_multiplier":0.8747,"chain_multiplier":1.1,"watchlist":false},{"rank":40,"slug":"flux-finance","name":"Flux Finance","category":"Lending","chains":["Ethereum"],"tvl_usd":43614505,"change_7d":-0.0568,"mcap_usd":null,"listed_at":"2023-02-15","age_days":1368,"implied_value_usd":10899910,"growth_multiplier":0.9997,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":41,"slug":"yuzu-money","name":"Yuzu Money","category":"Yield","chains":["Plasma","Monad","Ethereum"],"tvl_usd":57346091,"change_7d":-9.0455,"mcap_usd":null,"listed_at":"2025-11-14","age_days":365,"implied_value_usd":10340568,"growth_multiplier":0.9457,"maturity_multiplier":0.7333,"chain_multiplier":1.04,"watchlist":true},{"rank":42,"slug":"re7-labs","name":"Re7 Labs","category":"Risk Curators","chains":["World Chain","Ethereum","Starknet","Avalanche","Optimism","Base","Plume Mainnet","Linea","Binance","Sonic","Unichain","TAC","BOB","Berachain","Arc","Polygon","Plasma"],"tvl_usd":46889655,"change_7d":-13.9104,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":10293078,"growth_multiplier":0.9165,"maturity_multiplier":0.7984,"chain_multiplier":1.2,"watchlist":false},{"rank":43,"slug":"zircuit-staking","name":"Zircuit Staking","category":"Farm","chains":["Ethereum","Zircuit"],"tvl_usd":44375067,"change_7d":-17.0525,"mcap_usd":null,"listed_at":"2024-03-04","age_days":985,"implied_value_usd":9749712,"growth_multiplier":0.8977,"maturity_multiplier":0.9598,"chain_multiplier":1.02,"watchlist":false},{"rank":44,"slug":"exponent-yield-exchange","name":"Exponent Yield Exchange","category":"Yield","chains":["Solana"],"tvl_usd":45177163,"change_7d":-1.3185,"mcap_usd":null,"listed_at":"2025-02-03","age_days":649,"implied_value_usd":9379406,"growth_multiplier":0.9921,"maturity_multiplier":0.8371,"chain_multiplier":1,"watchlist":false},{"rank":45,"slug":"noon","name":"Noon","category":"Yield","chains":["Ethereum","Sophon","zkSync Era","TAC"],"tvl_usd":38329220,"change_7d":1.1384,"mcap_usd":null,"listed_at":"2025-02-03","age_days":649,"implied_value_usd":8560476,"growth_multiplier":1.0068,"maturity_multiplier":0.8371,"chain_multiplier":1.06,"watchlist":false},{"rank":46,"slug":"firelight","name":"Firelight","category":"Insurance","chains":["Flare"],"tvl_usd":51272081,"change_7d":-14.4069,"mcap_usd":null,"listed_at":"2025-12-09","age_days":340,"implied_value_usd":8480402,"growth_multiplier":0.9136,"maturity_multiplier":0.7242,"chain_multiplier":1,"watchlist":true},{"rank":47,"slug":"ultrayield-curator","name":"UltraYield Curator","category":"Risk Curators","chains":["Ethereum","Hyperliquid L1","Etherlink","Base","Monad","Plasma","Plume Mainnet","TAC","Linea","Arbitrum","Optimism"],"tvl_usd":40359035,"change_7d":-10.3636,"mcap_usd":null,"listed_at":"2025-10-24","age_days":386,"implied_value_usd":8413984,"growth_multiplier":0.9378,"maturity_multiplier":0.741,"chain_multiplier":1.2,"watchlist":false},{"rank":48,"slug":"txflow-bridge","name":"TxFlow Bridge","category":"Bridge","chains":["Arbitrum"],"tvl_usd":46958993,"change_7d":8.6584,"mcap_usd":null,"listed_at":"2026-04-21","age_days":207,"implied_value_usd":8343615,"growth_multiplier":1.052,"maturity_multiplier":0.6756,"chain_multiplier":1,"watchlist":false},{"rank":49,"slug":"mezo-earn","name":"Mezo Earn","category":"Governance Incentives","chains":["Mezo"],"tvl_usd":53638061,"change_7d":-12.2175,"mcap_usd":null,"listed_at":"2026-05-12","age_days":186,"implied_value_usd":8300242,"growth_multiplier":0.9267,"maturity_multiplier":0.6679,"chain_multiplier":1,"watchlist":true},{"rank":50,"slug":"project-0","name":"Project 0","category":"Lending","chains":["Solana"],"tvl_usd":48867055,"change_7d":-9.8516,"mcap_usd":null,"listed_at":"2025-12-24","age_days":325,"implied_value_usd":8261441,"growth_multiplier":0.9409,"maturity_multiplier":0.7187,"chain_multiplier":1,"watchlist":false},{"rank":51,"slug":"vishwa","name":"Vishwa","category":"Anchor BTC","chains":["Bitcoin","Sui"],"tvl_usd":45307916,"change_7d":-10.645,"mcap_usd":null,"listed_at":"2025-09-22","age_days":418,"implied_value_usd":8140834,"growth_multiplier":0.9361,"maturity_multiplier":0.7527,"chain_multiplier":1.02,"watchlist":false},{"rank":52,"slug":"current","name":"Current","category":"Lending","chains":["Sui"],"tvl_usd":49631964,"change_7d":-7.8161,"mcap_usd":null,"listed_at":"2026-03-31","age_days":228,"implied_value_usd":8080627,"growth_multiplier":0.9531,"maturity_multiplier":0.6833,"chain_multiplier":1,"watchlist":false},{"rank":53,"slug":"starknet-btc-staking","name":"Starknet BTC Staking","category":"Staking Pool","chains":["Starknet"],"tvl_usd":46615368,"change_7d":-4.3421,"mcap_usd":null,"listed_at":"2026-04-06","age_days":222,"implied_value_usd":7730594,"growth_multiplier":0.9739,"maturity_multiplier":0.6811,"chain_multiplier":1,"watchlist":false},{"rank":54,"slug":"ink-bridge","name":"Ink Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":44348098,"change_7d":-14.0784,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":7443699,"growth_multiplier":0.9155,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":55,"slug":"vfat.io","name":"vfat.io","category":"Yield Aggregator","chains":["Base","Ethereum","Hyperliquid L1","Robinhood Chain","Arbitrum","Monad","Binance","Optimism","Avalanche","Polygon","Arc","Unichain","Ink","Sonic","Hemi","Cronos","Elysium Kinetiq","Celo","Linea","Plasma","Katana","Berachain","World Chain","Mantle","Peaq","MegaETH","Pulse","Soneium","Fraxtal","Scroll","Mode","BOT Chain","Tempo","Telos","Etherlink","MetalL2","ZetaChain","Fantom","Lisk"],"tvl_usd":28071625,"change_7d":-11.1034,"mcap_usd":null,"listed_at":"2024-05-14","age_days":914,"implied_value_usd":7340722,"growth_multiplier":0.9334,"maturity_multiplier":0.9339,"chain_multiplier":1.2,"watchlist":false},{"rank":56,"slug":"pulsechain-bridge","name":"PulseChain Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":41070024,"change_7d":-4.2306,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":7338378,"growth_multiplier":0.9746,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":57,"slug":"makina","name":"Makina","category":"Onchain Capital Allocator","chains":["Ethereum","Base"],"tvl_usd":38711093,"change_7d":-0.066,"mcap_usd":null,"listed_at":"2025-11-05","age_days":374,"implied_value_usd":7268549,"growth_multiplier":0.9996,"maturity_multiplier":0.7366,"chain_multiplier":1.02,"watchlist":false},{"rank":58,"slug":"aegis-yusd","name":"Aegis YUSD","category":"Basis Trading","chains":["Ethereum","Binance"],"tvl_usd":34465848,"change_7d":0.0465,"mcap_usd":null,"listed_at":"2025-04-10","age_days":583,"implied_value_usd":7147000,"growth_multiplier":1.0003,"maturity_multiplier":0.813,"chain_multiplier":1.02,"watchlist":false},{"rank":59,"slug":"polygon-zkevm-bridge","name":"Polygon zkEVM Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":40060788,"change_7d":-4.4938,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":7146450,"growth_multiplier":0.973,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":60,"slug":"bitget-sol","name":"Bitget SOL","category":"Liquid Staking","chains":["Solana"],"tvl_usd":33224299,"change_7d":-5.9757,"mcap_usd":null,"listed_at":"2024-11-08","age_days":736,"implied_value_usd":6958051,"growth_multiplier":0.9641,"maturity_multiplier":0.8689,"chain_multiplier":1,"watchlist":false},{"rank":61,"slug":"stkesol-by-sol-strategies","name":"STKESOL by SOL Strategies","category":"Liquid Staking","chains":["Solana"],"tvl_usd":42064631,"change_7d":-13.9356,"mcap_usd":null,"listed_at":"2026-01-24","age_days":294,"implied_value_usd":6817091,"growth_multiplier":0.9164,"maturity_multiplier":0.7074,"chain_multiplier":1,"watchlist":false},{"rank":62,"slug":"3f","name":"3F","category":"Leveraged Farming","chains":["Ethereum"],"tvl_usd":40368186,"change_7d":-0.0399,"mcap_usd":null,"listed_at":"2026-05-25","age_days":173,"implied_value_usd":6691406,"growth_multiplier":0.9998,"maturity_multiplier":0.6632,"chain_multiplier":1,"watchlist":false},{"rank":63,"slug":"apex-omni","name":"Apex Omni","category":"Derivatives","chains":["Arbitrum","Ethereum","Base","Binance","Mantle"],"tvl_usd":26834758,"change_7d":-1.262,"mcap_usd":null,"listed_at":"2024-06-27","age_days":870,"implied_value_usd":6599521,"growth_multiplier":0.9924,"maturity_multiplier":0.9178,"chain_multiplier":1.08,"watchlist":false},{"rank":64,"slug":"project-x","name":"Project X","category":"Dexs","chains":["Hyperliquid L1"],"tvl_usd":34354598,"change_7d":-2.4436,"mcap_usd":null,"listed_at":"2025-07-16","age_days":486,"implied_value_usd":6580059,"growth_multiplier":0.9853,"maturity_multiplier":0.7775,"chain_multiplier":1,"watchlist":false},{"rank":65,"slug":"felix-vaults","name":"Felix Vaults","category":"Onchain Capital Allocator","chains":["Hyperliquid L1"],"tvl_usd":31906510,"change_7d":5.3279,"mcap_usd":null,"listed_at":"2025-05-28","age_days":535,"implied_value_usd":6547708,"growth_multiplier":1.032,"maturity_multiplier":0.7954,"chain_multiplier":1,"watchlist":false},{"rank":66,"slug":"marginfi-lending","name":"marginfi Lending","category":"Lending","chains":["Solana"],"tvl_usd":27713022,"change_7d":-11.9875,"mcap_usd":null,"listed_at":"2023-02-22","age_days":1361,"implied_value_usd":6429941,"growth_multiplier":0.9281,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":67,"slug":"nodedao","name":"NodeDAO","category":"Liquid Staking","chains":["Ethereum"],"tvl_usd":27596683,"change_7d":-14.3713,"mcap_usd":null,"listed_at":"2023-05-18","age_days":1276,"implied_value_usd":6304270,"growth_multiplier":0.9138,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":68,"slug":"mystic-finance-lending","name":"Mystic Finance Lending","category":"Lending","chains":["Flare","Citrea","Plume Mainnet"],"tvl_usd":30236632,"change_7d":-4.6056,"mcap_usd":null,"listed_at":"2025-04-09","age_days":584,"implied_value_usd":6217349,"growth_multiplier":0.9724,"maturity_multiplier":0.8133,"chain_multiplier":1.04,"watchlist":false},{"rank":69,"slug":"mantle-restaking","name":"Mantle Restaking","category":"Liquid Restaking","chains":["Ethereum"],"tvl_usd":30980107,"change_7d":-13.6638,"mcap_usd":null,"listed_at":"2024-11-13","age_days":731,"implied_value_usd":6164656,"growth_multiplier":0.918,"maturity_multiplier":0.867,"chain_multiplier":1,"watchlist":false},{"rank":70,"slug":"manta-cedefi","name":"Manta CeDeFi","category":"Basis Trading","chains":["Manta"],"tvl_usd":26526263,"change_7d":-0.6679,"mcap_usd":null,"listed_at":"2024-05-23","age_days":905,"implied_value_usd":6146562,"growth_multiplier":0.996,"maturity_multiplier":0.9306,"chain_multiplier":1,"watchlist":false},{"rank":71,"slug":"templar-lending","name":"Templar Lending","category":"Lending","chains":["Stellar","Ethereum","Bitcoin","Near","Zcash","Ripple","Solana","Flare","Doge","Cardano","Litecoin"],"tvl_usd":27210513,"change_7d":-5.153,"mcap_usd":null,"listed_at":"2025-08-12","age_days":459,"implied_value_usd":6072867,"growth_multiplier":0.9691,"maturity_multiplier":0.7677,"chain_multiplier":1.2,"watchlist":false},{"rank":72,"slug":"plasma-saving-vaults","name":"Plasma Saving Vaults","category":"Onchain Capital Allocator","chains":["Plasma"],"tvl_usd":31744697,"change_7d":0.2368,"mcap_usd":null,"listed_at":"2025-09-26","age_days":414,"implied_value_usd":5970386,"growth_multiplier":1.0014,"maturity_multiplier":0.7512,"chain_multiplier":1,"watchlist":false},{"rank":73,"slug":"plasma-one","name":"Plasma One","category":"Crypto Card Issuer","chains":["Plasma"],"tvl_usd":31926318,"change_7d":0.202,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":5860252,"growth_multiplier":1.0012,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":74,"slug":"origami-finance","name":"Origami Finance","category":"Leveraged Farming","chains":["Ethereum","Plasma","Berachain"],"tvl_usd":28834258,"change_7d":-27.5934,"mcap_usd":null,"listed_at":"2024-05-13","age_days":915,"implied_value_usd":5844381,"growth_multiplier":0.8344,"maturity_multiplier":0.9342,"chain_multiplier":1.04,"watchlist":false},{"rank":75,"slug":"xrpl-dex","name":"XRPL DEX","category":"Dexs","chains":["Ripple"],"tvl_usd":27708356,"change_7d":-12.4626,"mcap_usd":null,"listed_at":"2024-07-25","age_days":842,"implied_value_usd":5816781,"growth_multiplier":0.9252,"maturity_multiplier":0.9076,"chain_multiplier":1,"watchlist":false},{"rank":76,"slug":"d2-finance","name":"D2 Finance","category":"Onchain Capital Allocator","chains":["Hyperliquid L1","Arbitrum","Base","Ethereum","Robinhood Chain","Berachain","Optimism"],"tvl_usd":22590871,"change_7d":-3.939,"mcap_usd":null,"listed_at":"2024-07-05","age_days":862,"implied_value_usd":5650288,"growth_multiplier":0.9764,"maturity_multiplier":0.9149,"chain_multiplier":1.12,"watchlist":false},{"rank":77,"slug":"chiliz-governance-staking","name":"Chiliz Governance Staking","category":"Chain","chains":["Chiliz"],"tvl_usd":25528101,"change_7d":-7.028,"mcap_usd":null,"listed_at":"2024-06-25","age_days":872,"implied_value_usd":5614943,"growth_multiplier":0.9578,"maturity_multiplier":0.9185,"chain_multiplier":1,"watchlist":false},{"rank":78,"slug":"bitlayer-ybtc-family","name":"Bitlayer YBTC Family","category":"Anchor BTC","chains":["Bitcoin","Ethereum"],"tvl_usd":27174703,"change_7d":-10.4927,"mcap_usd":null,"listed_at":"2024-11-21","age_days":723,"implied_value_usd":5610915,"growth_multiplier":0.937,"maturity_multiplier":0.8641,"chain_multiplier":1.02,"watchlist":false},{"rank":79,"slug":"suibridge","name":"SuiBridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":26744091,"change_7d":-7.869,"mcap_usd":null,"listed_at":"2024-10-10","age_days":765,"implied_value_usd":5602416,"growth_multiplier":0.9528,"maturity_multiplier":0.8795,"chain_multiplier":1,"watchlist":false},{"rank":80,"slug":"liminal-basis","name":"Liminal Basis","category":"Basis Trading","chains":["Hyperliquid L1"],"tvl_usd":25662087,"change_7d":21.2736,"mcap_usd":null,"listed_at":"2025-07-26","age_days":476,"implied_value_usd":5598574,"growth_multiplier":1.1276,"maturity_multiplier":0.7739,"chain_multiplier":1,"watchlist":false},{"rank":81,"slug":"stakee","name":"Stakee","category":"Liquid Staking","chains":["TON"],"tvl_usd":22926580,"change_7d":-5.0777,"mcap_usd":null,"listed_at":"2023-12-26","age_days":1054,"implied_value_usd":5473795,"growth_multiplier":0.9695,"maturity_multiplier":0.985,"chain_multiplier":1,"watchlist":false},{"rank":82,"slug":"ring-few","name":"Ring Few","category":"Bridge","chains":["Ethereum","Hyperliquid L1","Binance","Base","Arbitrum","Blast"],"tvl_usd":24615549,"change_7d":-28.9758,"mcap_usd":null,"listed_at":"2024-03-02","age_days":987,"implied_value_usd":5371773,"growth_multiplier":0.8261,"maturity_multiplier":0.9605,"chain_multiplier":1.1,"watchlist":false},{"rank":83,"slug":"crypto.com-liquid-staking","name":"Crypto.com Liquid Staking","category":"Liquid Staking","chains":["Cronos","Solana"],"tvl_usd":23614593,"change_7d":-12.5758,"mcap_usd":null,"listed_at":"2024-02-22","age_days":996,"implied_value_usd":5366014,"growth_multiplier":0.9245,"maturity_multiplier":0.9638,"chain_multiplier":1.02,"watchlist":false},{"rank":84,"slug":"lulo","name":"Lulo","category":"Yield Aggregator","chains":["Solana"],"tvl_usd":24457058,"change_7d":-4.7863,"mcap_usd":null,"listed_at":"2024-08-17","age_days":819,"implied_value_usd":5339928,"growth_multiplier":0.9713,"maturity_multiplier":0.8992,"chain_multiplier":1,"watchlist":false},{"rank":85,"slug":"august-digital","name":"August Digital","category":"Risk Curators","chains":["Monad","Ethereum"],"tvl_usd":22373995,"change_7d":77.9812,"mcap_usd":null,"listed_at":"2026-09-02","age_days":73,"implied_value_usd":5248232,"growth_multiplier":1.4679,"maturity_multiplier":0.6267,"chain_multiplier":1.02,"watchlist":false},{"rank":86,"slug":"zoo-finance","name":"Zoo Finance","category":"Yield","chains":["Binance","Story","Sei","Arbitrum","Base","Berachain"],"tvl_usd":24557589,"change_7d":-13.1939,"mcap_usd":null,"listed_at":"2025-02-10","age_days":642,"implied_value_usd":5189650,"growth_multiplier":0.9208,"maturity_multiplier":0.8345,"chain_multiplier":1.1,"watchlist":false},{"rank":87,"slug":"hylo-protocol","name":"Hylo Protocol","category":"Dual-Token Stablecoin","chains":["Solana"],"tvl_usd":29173196,"change_7d":-15.3091,"mcap_usd":null,"listed_at":"2025-07-29","age_days":473,"implied_value_usd":5118448,"growth_multiplier":0.9081,"maturity_multiplier":0.7728,"chain_multiplier":1,"watchlist":false},{"rank":88,"slug":"decibel","name":"Decibel","category":"Derivatives","chains":["Aptos"],"tvl_usd":29253135,"change_7d":0.2216,"mcap_usd":null,"listed_at":"2026-02-26","age_days":261,"implied_value_usd":5091998,"growth_multiplier":1.0013,"maturity_multiplier":0.6953,"chain_multiplier":1,"watchlist":false},{"rank":89,"slug":"obeliskbtc","name":"ObeliskBTC","category":"Bridge","chains":["Bitcoin"],"tvl_usd":23654248,"change_7d":-6.3782,"mcap_usd":null,"listed_at":"2024-10-07","age_days":768,"implied_value_usd":5007900,"growth_multiplier":0.9617,"maturity_multiplier":0.8805,"chain_multiplier":1,"watchlist":false},{"rank":90,"slug":"chain-fusion","name":"Chain Fusion","category":"Decentralized BTC","chains":["Bitcoin","Ethereum"],"tvl_usd":20121715,"change_7d":-9.4223,"mcap_usd":null,"listed_at":"2023-12-21","age_days":1059,"implied_value_usd":4777298,"growth_multiplier":0.9435,"maturity_multiplier":0.9868,"chain_multiplier":1.02,"watchlist":false},{"rank":91,"slug":"native-credit-pool","name":"Native Credit Pool","category":"Lending","chains":["Morph","Ethereum","Binance","Base","Arbitrum","Robinhood Chain","X Layer"],"tvl_usd":19086720,"change_7d":-7.0851,"mcap_usd":null,"listed_at":"2024-05-23","age_days":905,"implied_value_usd":4761934,"growth_multiplier":0.9575,"maturity_multiplier":0.9306,"chain_multiplier":1.12,"watchlist":false},{"rank":92,"slug":"neutral-trade","name":"Neutral Trade","category":"Onchain Capital Allocator","chains":["Solana","Robinhood Chain","Ethereum","Monad"],"tvl_usd":21380669,"change_7d":-4.2692,"mcap_usd":null,"listed_at":"2024-12-23","age_days":691,"implied_value_usd":4705994,"growth_multiplier":0.9744,"maturity_multiplier":0.8524,"chain_multiplier":1.06,"watchlist":false},{"rank":93,"slug":"scroll-bridge","name":"Scroll Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":27186001,"change_7d":-10.0956,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":4682195,"growth_multiplier":0.9394,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":94,"slug":"y10k-capital","name":"Y10K Capital","category":"Risk Curators","chains":["Ethereum","Monad","Sei"],"tvl_usd":28339301,"change_7d":-2.411,"mcap_usd":null,"listed_at":"2026-07-15","age_days":122,"implied_value_usd":4680601,"growth_multiplier":0.9855,"maturity_multiplier":0.6446,"chain_multiplier":1.04,"watchlist":false},{"rank":95,"slug":"drakewell","name":"Drakewell","category":"Basis Trading","chains":["Arbitrum","Ethereum","Aleo"],"tvl_usd":28230939,"change_7d":3.2554,"mcap_usd":null,"listed_at":"2026-10-02","age_days":43,"implied_value_usd":4607595,"growth_multiplier":1.0195,"maturity_multiplier":0.6157,"chain_multiplier":1.04,"watchlist":false},{"rank":96,"slug":"nuva","name":"NUVA","category":"Yield","chains":["Provenance","Ethereum"],"tvl_usd":15864571,"change_7d":160.8009,"mcap_usd":null,"listed_at":"2026-07-07","age_days":130,"implied_value_usd":4505356,"growth_multiplier":1.72,"maturity_multiplier":0.6475,"chain_multiplier":1.02,"watchlist":false},{"rank":97,"slug":"mellow-restaking","name":"Mellow Restaking","category":"Liquid Restaking","chains":["Ethereum","Binance","Fraxtal","Lisk","Monad"],"tvl_usd":19109266,"change_7d":-12.4843,"mcap_usd":null,"listed_at":"2024-06-11","age_days":886,"implied_value_usd":4408619,"growth_multiplier":0.9251,"maturity_multiplier":0.9237,"chain_multiplier":1.08,"watchlist":false},{"rank":98,"slug":"wrapped","name":"Wrapped","category":"Bridge","chains":["Ripple","Celo","Ethereum"],"tvl_usd":18094141,"change_7d":-14.2432,"mcap_usd":null,"listed_at":"2021-12-14","age_days":1796,"implied_value_usd":4302436,"growth_multiplier":0.9145,"maturity_multiplier":1,"chain_multiplier":1.04,"watchlist":false},{"rank":99,"slug":"xion-finance","name":"XION Finance","category":"Chain","chains":["XION"],"tvl_usd":22019898,"change_7d":-3.5701,"mcap_usd":null,"listed_at":"2025-07-11","age_days":491,"implied_value_usd":4198459,"growth_multiplier":0.9786,"maturity_multiplier":0.7794,"chain_multiplier":1,"watchlist":false},{"rank":100,"slug":"avant-aveth","name":"Avant avETH","category":"Onchain Capital Allocator","chains":["Ethereum"],"tvl_usd":23890230,"change_7d":-12.9245,"mcap_usd":null,"listed_at":"2025-10-24","age_days":386,"implied_value_usd":4082493,"growth_multiplier":0.9225,"maturity_multiplier":0.741,"chain_multiplier":1,"watchlist":false},{"rank":101,"slug":"wtao","name":"wTAO","category":"Bridge","chains":["Bittensor"],"tvl_usd":25298588,"change_7d":-5.4179,"mcap_usd":null,"listed_at":"2026-06-16","age_days":151,"implied_value_usd":4008955,"growth_multiplier":0.9675,"maturity_multiplier":0.6552,"chain_multiplier":1,"watchlist":false},{"rank":102,"slug":"anemoy-capital","name":"Anemoy Capital","category":"RWA","chains":["Ethereum","Base","Celo"],"tvl_usd":27927845,"change_7d":-72.7093,"mcap_usd":null,"listed_at":"2024-12-09","age_days":705,"implied_value_usd":3985127,"growth_multiplier":0.64,"maturity_multiplier":0.8575,"chain_multiplier":1.04,"watchlist":false},{"rank":103,"slug":"steer-protocol","name":"Steer Protocol","category":"Liquidity Manager","chains":["Binance","Katana","Base","Flare","Ethereum","Bittensor EVM","Polygon","Manta","Nibiru","Robinhood Chain","Avalanche","Metis","Mode","Arbitrum","Linea","Hyperliquid L1","Sonic","Zircuit","Sei","Optimism","Celo","Scroll","RSK","Berachain","X Layer","Mantle","Telos","Fantom","Filecoin","Unichain","ApeChain","Taiko","zkLink","Evmos","ThunderCore","Kava","Polygon zkEVM","Astar","Blast","Moonbeam","ZetaChain","Hemi","Saga","Ronin","Soneium"],"tvl_usd":13740727,"change_7d":-7.725,"mcap_usd":null,"listed_at":"2023-05-30","age_days":1264,"implied_value_usd":3931153,"growth_multiplier":0.9537,"maturity_multiplier":1,"chain_multiplier":1.2,"watchlist":false},{"rank":104,"slug":"gmx-solana","name":"GMX Solana","category":"Derivatives","chains":["Solana"],"tvl_usd":22620052,"change_7d":-4.5855,"mcap_usd":null,"listed_at":"2026-01-23","age_days":295,"implied_value_usd":3892288,"growth_multiplier":0.9725,"maturity_multiplier":0.7078,"chain_multiplier":1,"watchlist":false},{"rank":105,"slug":"pacifica-bridge","name":"Pacifica Bridge","category":"Bridge","chains":["Solana"],"tvl_usd":24557221,"change_7d":5.0591,"mcap_usd":null,"listed_at":"2026-10-13","age_days":32,"implied_value_usd":3869341,"growth_multiplier":1.0304,"maturity_multiplier":0.6117,"chain_multiplier":1,"watchlist":false},{"rank":106,"slug":"theo-network-thbill","name":"Theo Network thBill","category":"RWA","chains":["Stable","Ethereum","Arbitrum","Base","Monad","Solana"],"tvl_usd":11810283,"change_7d":94.0117,"mcap_usd":null,"listed_at":"2025-09-10","age_days":430,"implied_value_usd":3845826,"growth_multiplier":1.5641,"maturity_multiplier":0.7571,"chain_multiplier":1.1,"watchlist":false},{"rank":107,"slug":"rif-on-chain","name":"RIF ON CHAIN","category":"Dual-Token Stablecoin","chains":["RSK"],"tvl_usd":16676100,"change_7d":-9.7195,"mcap_usd":null,"listed_at":"2024-01-12","age_days":1037,"implied_value_usd":3842721,"growth_multiplier":0.9417,"maturity_multiplier":0.9788,"chain_multiplier":1,"watchlist":false},{"rank":108,"slug":"gamma-research","name":"Gamma Research","category":"Risk Curators","chains":["Monad"],"tvl_usd":21709938,"change_7d":21.2903,"mcap_usd":null,"listed_at":"2026-09-03","age_days":72,"implied_value_usd":3833466,"growth_multiplier":1.1277,"maturity_multiplier":0.6263,"chain_multiplier":1,"watchlist":false},{"rank":109,"slug":"phoenix-perp","name":"Phoenix Perp","category":"Derivatives","chains":["Solana"],"tvl_usd":22522562,"change_7d":-2.6199,"mcap_usd":null,"listed_at":"2026-03-28","age_days":231,"implied_value_usd":3792943,"growth_multiplier":0.9843,"maturity_multiplier":0.6844,"chain_multiplier":1,"watchlist":false},{"rank":110,"slug":"fira","name":"Fira","category":"Lending","chains":["Ethereum"],"tvl_usd":19999009,"change_7d":11.6361,"mcap_usd":null,"listed_at":"2026-01-27","age_days":291,"implied_value_usd":3777877,"growth_multiplier":1.0698,"maturity_multiplier":0.7063,"chain_multiplier":1,"watchlist":false},{"rank":111,"slug":"adrastea-validator","name":"Adrastea Validator","category":"Staking Pool","chains":["Solana"],"tvl_usd":22106682,"change_7d":-16.7108,"mcap_usd":null,"listed_at":"2025-09-15","age_days":425,"implied_value_usd":3755517,"growth_multiplier":0.8997,"maturity_multiplier":0.7553,"chain_multiplier":1,"watchlist":false},{"rank":112,"slug":"agni-finance","name":"Agni Finance","category":"Dexs","chains":["Mantle"],"tvl_usd":15126696,"change_7d":-4.0995,"mcap_usd":null,"listed_at":"2023-07-21","age_days":1212,"implied_value_usd":3688656,"growth_multiplier":0.9754,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":113,"slug":"flowdesk","name":"Flowdesk","category":"Risk Curators","chains":["Ethereum"],"tvl_usd":28044836,"change_7d":-27.6485,"mcap_usd":null,"listed_at":"2026-09-02","age_days":73,"implied_value_usd":3664817,"growth_multiplier":0.8341,"maturity_multiplier":0.6267,"chain_multiplier":1,"watchlist":false},{"rank":114,"slug":"waterline","name":"Waterline","category":"Risk Curators","chains":["Ethereum"],"tvl_usd":22598710,"change_7d":5.0287,"mcap_usd":null,"listed_at":"2026-09-03","age_days":72,"implied_value_usd":3645162,"growth_multiplier":1.0302,"maturity_multiplier":0.6263,"chain_multiplier":1,"watchlist":false},{"rank":115,"slug":"felix-cdp","name":"Felix CDP","category":"CDP","chains":["Hyperliquid L1"],"tvl_usd":18895180,"change_7d":-10.387,"mcap_usd":null,"listed_at":"2025-04-08","age_days":585,"implied_value_usd":3604196,"growth_multiplier":0.9377,"maturity_multiplier":0.8137,"chain_multiplier":1,"watchlist":false},{"rank":116,"slug":"risex","name":"RISEx","category":"Derivatives","chains":["RISE"],"tvl_usd":21553525,"change_7d":-2.5101,"mcap_usd":null,"listed_at":"2026-05-06","age_days":192,"implied_value_usd":3556570,"growth_multiplier":0.9849,"maturity_multiplier":0.6701,"chain_multiplier":1,"watchlist":false},{"rank":117,"slug":"definity-staked-sol","name":"Definity Staked SOL","category":"Liquid Staking","chains":["Solana"],"tvl_usd":24453416,"change_7d":-13.965,"mcap_usd":null,"listed_at":"2026-09-30","age_days":45,"implied_value_usd":3452743,"growth_multiplier":0.9162,"maturity_multiplier":0.6164,"chain_multiplier":1,"watchlist":false},{"rank":118,"slug":"hyperbeat-earn","name":"Hyperbeat Earn","category":"Yield Aggregator","chains":["Hyperliquid L1"],"tvl_usd":17615173,"change_7d":-4.9692,"mcap_usd":null,"listed_at":"2025-04-28","age_days":565,"implied_value_usd":3445307,"growth_multiplier":0.9702,"maturity_multiplier":0.8064,"chain_multiplier":1,"watchlist":false},{"rank":119,"slug":"japan-staked-sol","name":"Japan Staked SOL","category":"Liquid Staking","chains":["Solana"],"tvl_usd":19655590,"change_7d":20.3675,"mcap_usd":null,"listed_at":"2026-09-17","age_days":58,"implied_value_usd":3425475,"growth_multiplier":1.1222,"maturity_multiplier":0.6212,"chain_multiplier":1,"watchlist":false},{"rank":120,"slug":"katana-pre-launch","name":"Katana Pre-Launch","category":"Farm","chains":["Ethereum"],"tvl_usd":17633413,"change_7d":-3.1255,"mcap_usd":null,"listed_at":"2025-06-22","age_days":510,"implied_value_usd":3401291,"growth_multiplier":0.9812,"maturity_multiplier":0.7863,"chain_multiplier":1,"watchlist":false},{"rank":121,"slug":"hakutora","name":"Hakutora","category":"Risk Curators","chains":["Ethereum"],"tvl_usd":16194180,"change_7d":2.6714,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":3283988,"growth_multiplier":1.016,"maturity_multiplier":0.7984,"chain_multiplier":1,"watchlist":false},{"rank":122,"slug":"9summits","name":"9Summits","category":"Risk Curators","chains":["Ethereum","Avalanche","Base","Unichain"],"tvl_usd":16040161,"change_7d":-7.948,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":3231696,"growth_multiplier":0.9523,"maturity_multiplier":0.7984,"chain_multiplier":1.06,"watchlist":false},{"rank":123,"slug":"defindex","name":"DeFindex","category":"Yield Aggregator","chains":["Stellar"],"tvl_usd":18508985,"change_7d":-1.637,"mcap_usd":null,"listed_at":"2026-02-11","age_days":276,"implied_value_usd":3211024,"growth_multiplier":0.9902,"maturity_multiplier":0.7008,"chain_multiplier":1,"watchlist":false},{"rank":124,"slug":"ultrayield-vaults","name":"UltraYield Vaults","category":"Onchain Capital Allocator","chains":["Ethereum"],"tvl_usd":18404824,"change_7d":-10.6883,"mcap_usd":null,"listed_at":"2025-10-21","age_days":389,"implied_value_usd":3195582,"growth_multiplier":0.9359,"maturity_multiplier":0.7421,"chain_multiplier":1,"watchlist":false},{"rank":125,"slug":"agua","name":"Agua","category":"Onchain Capital Allocator","chains":["Ethereum","Monad"],"tvl_usd":20194381,"change_7d":-4.984,"mcap_usd":null,"listed_at":"2026-08-03","age_days":103,"implied_value_usd":3185306,"growth_multiplier":0.9701,"maturity_multiplier":0.6376,"chain_multiplier":1.02,"watchlist":false},{"rank":126,"slug":"sygnum-fiusd-liquidity-fund","name":"Sygnum FIUSD Liquidity Fund","category":"RWA","chains":["zkSync Era"],"tvl_usd":14194453,"change_7d":0.0759,"mcap_usd":null,"listed_at":"2024-09-25","age_days":780,"implied_value_usd":3141710,"growth_multiplier":1.0005,"maturity_multiplier":0.8849,"chain_multiplier":1,"watchlist":false},{"rank":127,"slug":"nemo-trading","name":"NEMO Trading","category":"Risk Curators","chains":["Ethereum"],"tvl_usd":20088275,"change_7d":-0.7307,"mcap_usd":null,"listed_at":"2026-09-19","age_days":56,"implied_value_usd":3102315,"growth_multiplier":0.9956,"maturity_multiplier":0.6205,"chain_multiplier":1,"watchlist":false},{"rank":128,"slug":"bisonfi","name":"BisonFi","category":"Dexs","chains":["Solana"],"tvl_usd":20001683,"change_7d":-3.095,"mcap_usd":null,"listed_at":"2026-08-26","age_days":80,"implied_value_usd":3087955,"growth_multiplier":0.9814,"maturity_multiplier":0.6292,"chain_multiplier":1,"watchlist":false},{"rank":129,"slug":"3jane-lending","name":"3Jane Lending","category":"Uncollateralized Lending","chains":["Ethereum"],"tvl_usd":14030807,"change_7d":26.3009,"mcap_usd":null,"listed_at":"2025-09-03","age_days":437,"implied_value_usd":3085056,"growth_multiplier":1.1578,"maturity_multiplier":0.7596,"chain_multiplier":1,"watchlist":false},{"rank":130,"slug":"estate-protocol","name":"Estate Protocol","category":"RWA","chains":["Arbitrum"],"tvl_usd":13945568,"change_7d":null,"mcap_usd":null,"listed_at":"2024-10-09","age_days":766,"implied_value_usd":3067388,"growth_multiplier":1,"maturity_multiplier":0.8798,"chain_multiplier":1,"watchlist":false},{"rank":131,"slug":"catfee-staking-vault","name":"CatFee Staking Vault","category":"Staking Pool","chains":["Tron"],"tvl_usd":16393978,"change_7d":-1.9617,"mcap_usd":null,"listed_at":"2025-09-11","age_days":429,"implied_value_usd":3064877,"growth_multiplier":0.9882,"maturity_multiplier":0.7567,"chain_multiplier":1,"watchlist":false},{"rank":132,"slug":"perena-vaults","name":"Perena Vaults","category":"Onchain Capital Allocator","chains":["Solana"],"tvl_usd":17232534,"change_7d":-1.1868,"mcap_usd":null,"listed_at":"2025-12-31","age_days":318,"implied_value_usd":3063362,"growth_multiplier":0.9929,"maturity_multiplier":0.7162,"chain_multiplier":1,"watchlist":false},{"rank":133,"slug":"rocksolid-network","name":"RockSolid Network","category":"Yield","chains":["Ethereum"],"tvl_usd":18161180,"change_7d":-14.49,"mcap_usd":null,"listed_at":"2025-11-05","age_days":374,"implied_value_usd":3053708,"growth_multiplier":0.9131,"maturity_multiplier":0.7366,"chain_multiplier":1,"watchlist":false},{"rank":134,"slug":"bucket-cdp","name":"Bucket CDP","category":"CDP","chains":["Sui"],"tvl_usd":12689880,"change_7d":-8.7832,"mcap_usd":null,"listed_at":"2023-07-06","age_days":1227,"implied_value_usd":3005283,"growth_multiplier":0.9473,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":135,"slug":"communityv3","name":"CommunityV3","category":"Dexs","chains":["Ethereum"],"tvl_usd":17407286,"change_7d":18.2229,"mcap_usd":null,"listed_at":"2026-10-19","age_days":26,"implied_value_usd":2942435,"growth_multiplier":1.1093,"maturity_multiplier":0.6095,"chain_multiplier":1,"watchlist":false},{"rank":136,"slug":"goose","name":"Goose","category":"CeDeFi","chains":["Binance","Op_Bnb","Arbitrum","Ethereum"],"tvl_usd":12798539,"change_7d":0.0103,"mcap_usd":null,"listed_at":"2024-11-14","age_days":730,"implied_value_usd":2939579,"growth_multiplier":1.0001,"maturity_multiplier":0.8667,"chain_multiplier":1.06,"watchlist":false},{"rank":137,"slug":"tempo-stablecoin-dex","name":"Tempo Stablecoin Dex","category":"Dexs","chains":["Tempo"],"tvl_usd":17043713,"change_7d":1.7778,"mcap_usd":null,"listed_at":"2026-04-02","age_days":226,"implied_value_usd":2939349,"growth_multiplier":1.0107,"maturity_multiplier":0.6826,"chain_multiplier":1,"watchlist":false},{"rank":138,"slug":"manifest-trade","name":"Manifest Trade","category":"Dexs","chains":["Solana"],"tvl_usd":9084105,"change_7d":73.6522,"mcap_usd":null,"listed_at":"2024-11-13","age_days":731,"implied_value_usd":2839203,"growth_multiplier":1.4419,"maturity_multiplier":0.867,"chain_multiplier":1,"watchlist":false},{"rank":139,"slug":"fstswap","name":"FstSwap","category":"Dexs","chains":["Binance"],"tvl_usd":11751516,"change_7d":-7.0751,"mcap_usd":null,"listed_at":"2022-09-20","age_days":1516,"implied_value_usd":2813164,"growth_multiplier":0.9575,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":140,"slug":"growihf","name":"GrowiHF","category":"Yield","chains":["Hyperliquid L1","Hibachi"],"tvl_usd":12818453,"change_7d":0.9833,"mcap_usd":null,"listed_at":"2025-03-10","age_days":614,"implied_value_usd":2710265,"growth_multiplier":1.0059,"maturity_multiplier":0.8243,"chain_multiplier":1.02,"watchlist":false},{"rank":141,"slug":"strata-markets","name":"Strata Markets","category":"Yield","chains":["Ethereum"],"tvl_usd":14899908,"change_7d":-3.9707,"mcap_usd":null,"listed_at":"2025-10-16","age_days":394,"implied_value_usd":2705091,"growth_multiplier":0.9762,"maturity_multiplier":0.7439,"chain_multiplier":1,"watchlist":false},{"rank":142,"slug":"hylo-lsts","name":"Hylo LSTs","category":"Liquid Staking","chains":["Solana"],"tvl_usd":15528891,"change_7d":-15.1122,"mcap_usd":null,"listed_at":"2025-09-02","age_days":438,"implied_value_usd":2682959,"growth_multiplier":0.9093,"maturity_multiplier":0.76,"chain_multiplier":1,"watchlist":false},{"rank":143,"slug":"wemix.fi-staking","name":"WEMIX.FI Staking","category":"Staking Pool","chains":["WEMIX"],"tvl_usd":11332836,"change_7d":-8.8705,"mcap_usd":null,"listed_at":"2023-05-03","age_days":1291,"implied_value_usd":2682417,"growth_multiplier":0.9468,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":144,"slug":"yieldfi","name":"YieldFi","category":"Yield Aggregator","chains":["Ethereum","Base","Arbitrum","Plume Mainnet","Sonic","Binance","Optimism","Plasma","Katana","TAC","Saga","Avalanche","Linea"],"tvl_usd":10760030,"change_7d":-3.4931,"mcap_usd":null,"listed_at":"2025-01-06","age_days":677,"implied_value_usd":2677787,"growth_multiplier":0.979,"maturity_multiplier":0.8473,"chain_multiplier":1.2,"watchlist":false},{"rank":145,"slug":"exponent-strategy-vaults","name":"Exponent Strategy Vaults","category":"Onchain Capital Allocator","chains":["Solana"],"tvl_usd":16952539,"change_7d":-7.5244,"mcap_usd":null,"listed_at":"2026-06-17","age_days":150,"implied_value_usd":2649821,"growth_multiplier":0.9549,"maturity_multiplier":0.6548,"chain_multiplier":1,"watchlist":false},{"rank":146,"slug":"stellar-dex","name":"Stellar DEX","category":"Dexs","chains":["Stellar"],"tvl_usd":13370320,"change_7d":-4.1027,"mcap_usd":null,"listed_at":"2025-06-04","age_days":528,"implied_value_usd":2585015,"growth_multiplier":0.9754,"maturity_multiplier":0.7929,"chain_multiplier":1,"watchlist":false},{"rank":147,"slug":"predict-fun","name":"Predict Fun","category":"Prediction Market","chains":["Binance","Blast"],"tvl_usd":10662527,"change_7d":9.4025,"mcap_usd":null,"listed_at":"2024-09-10","age_days":795,"implied_value_usd":2557557,"growth_multiplier":1.0564,"maturity_multiplier":0.8904,"chain_multiplier":1.02,"watchlist":false},{"rank":148,"slug":"sx-rollup-bridge","name":"SX Rollup Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":13735209,"change_7d":1.5766,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":2541942,"growth_multiplier":1.0095,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":149,"slug":"circle-bitcoin","name":"Circle Bitcoin","category":"Bridge","chains":["Bitcoin"],"tvl_usd":17202268,"change_7d":-16.9412,"mcap_usd":null,"listed_at":"2026-06-12","age_days":155,"implied_value_usd":2536807,"growth_multiplier":0.8984,"maturity_multiplier":0.6566,"chain_multiplier":1,"watchlist":false},{"rank":150,"slug":"syntropia","name":"Syntropia","category":"Yield Aggregator","chains":["Ethereum"],"tvl_usd":13588961,"change_7d":-0.0228,"mcap_usd":null,"listed_at":"2025-10-15","age_days":395,"implied_value_usd":2528194,"growth_multiplier":0.9999,"maturity_multiplier":0.7443,"chain_multiplier":1,"watchlist":false},{"rank":151,"slug":"morph-bridge","name":"Morph Bridge","category":"Bridge","chains":["Ethereum"],"tvl_usd":12273756,"change_7d":-11.098,"mcap_usd":null,"listed_at":"2024-10-30","age_days":745,"implied_value_usd":2497929,"growth_multiplier":0.9334,"maturity_multiplier":0.8721,"chain_multiplier":1,"watchlist":false},{"rank":152,"slug":"paimon","name":"Paimon","category":"RWA","chains":["Binance"],"tvl_usd":14099539,"change_7d":0.0075,"mcap_usd":null,"listed_at":"2026-02-17","age_days":270,"implied_value_usd":2462702,"growth_multiplier":1,"maturity_multiplier":0.6986,"chain_multiplier":1,"watchlist":false},{"rank":153,"slug":"t3tris-finance","name":"T3tris Finance","category":"Onchain Capital Allocator","chains":["Arbitrum","Robinhood Chain"],"tvl_usd":13863510,"change_7d":6.7145,"mcap_usd":null,"listed_at":"2026-06-25","age_days":142,"implied_value_usd":2397336,"growth_multiplier":1.0403,"maturity_multiplier":0.6519,"chain_multiplier":1.02,"watchlist":false},{"rank":154,"slug":"reya-perps","name":"Reya Perps","category":"Derivatives","chains":["Reya Network"],"tvl_usd":9800082,"change_7d":-1.3282,"mcap_usd":null,"listed_at":"2024-08-13","age_days":823,"implied_value_usd":2189000,"growth_multiplier":0.992,"maturity_multiplier":0.9006,"chain_multiplier":1,"watchlist":false},{"rank":155,"slug":"binaryx-platform","name":"Binaryx Platform","category":"RWA","chains":["Polygon"],"tvl_usd":8993770,"change_7d":0.0032,"mcap_usd":null,"listed_at":"2024-02-01","age_days":1017,"implied_value_usd":2184419,"growth_multiplier":1,"maturity_multiplier":0.9715,"chain_multiplier":1,"watchlist":false},{"rank":156,"slug":"sceptre-liquid","name":"Sceptre Liquid","category":"Liquid Staking","chains":["Flare"],"tvl_usd":10334007,"change_7d":-15.0379,"mcap_usd":null,"listed_at":"2024-06-05","age_days":892,"implied_value_usd":2176105,"growth_multiplier":0.9098,"maturity_multiplier":0.9258,"chain_multiplier":1,"watchlist":false},{"rank":157,"slug":"syntetika","name":"Syntetika","category":"Risk Curators","chains":["Base"],"tvl_usd":14612979,"change_7d":-9.956,"mcap_usd":null,"listed_at":"2026-08-19","age_days":87,"implied_value_usd":2170176,"growth_multiplier":0.9403,"maturity_multiplier":0.6318,"chain_multiplier":1,"watchlist":false},{"rank":158,"slug":"hubra-staked-sol","name":"Hubra Staked SOL","category":"Liquid Staking","chains":["Solana"],"tvl_usd":10603343,"change_7d":-10.0953,"mcap_usd":null,"listed_at":"2024-11-10","age_days":734,"implied_value_usd":2161873,"growth_multiplier":0.9394,"maturity_multiplier":0.8681,"chain_multiplier":1,"watchlist":false},{"rank":159,"slug":"bouncebit-prime","name":"BounceBit Prime","category":"Basis Trading","chains":["Binance","Ethereum"],"tvl_usd":11443356,"change_7d":0.0165,"mcap_usd":null,"listed_at":"2025-11-10","age_days":369,"implied_value_usd":2144384,"growth_multiplier":1.0001,"maturity_multiplier":0.7348,"chain_multiplier":1.02,"watchlist":false},{"rank":160,"slug":"exponent-risk-tranching","name":"Exponent Risk Tranching","category":"Yield","chains":["Solana"],"tvl_usd":13424399,"change_7d":-1.5552,"mcap_usd":null,"listed_at":"2026-07-15","age_days":122,"implied_value_usd":2143043,"growth_multiplier":0.9907,"maturity_multiplier":0.6446,"chain_multiplier":1,"watchlist":false},{"rank":161,"slug":"qearn","name":"Qearn","category":"Staking Pool","chains":["Qubic"],"tvl_usd":10991952,"change_7d":-8.5249,"mcap_usd":null,"listed_at":"2025-03-20","age_days":604,"implied_value_usd":2139760,"growth_multiplier":0.9489,"maturity_multiplier":0.8206,"chain_multiplier":1,"watchlist":false},{"rank":162,"slug":"bima-cdp","name":"BIMA CDP","category":"CDP","chains":["Bitcoin","Ethereum","Hemi","CORE","Sonic","Plume Mainnet","Binance","Goat"],"tvl_usd":9657334,"change_7d":-6.4116,"mcap_usd":null,"listed_at":"2025-05-28","age_days":535,"implied_value_usd":2105083,"growth_multiplier":0.9615,"maturity_multiplier":0.7954,"chain_multiplier":1.14,"watchlist":false},{"rank":163,"slug":"monolith-market","name":"Monolith Market","category":"CDP","chains":["Ethereum"],"tvl_usd":7156099,"change_7d":162.8578,"mcap_usd":null,"listed_at":"2026-05-07","age_days":191,"implied_value_usd":2060970,"growth_multiplier":1.72,"maturity_multiplier":0.6698,"chain_multiplier":1,"watchlist":false},{"rank":164,"slug":"raiku-staked-sol","name":"Raiku Staked SOL","category":"Liquid Staking","chains":["Solana"],"tvl_usd":14028032,"change_7d":-11.9875,"mcap_usd":null,"listed_at":"2026-09-19","age_days":56,"implied_value_usd":2019441,"growth_multiplier":0.9281,"maturity_multiplier":0.6205,"chain_multiplier":1,"watchlist":false},{"rank":165,"slug":"hyperbeat-lst","name":"Hyperbeat LST","category":"Liquid Staking","chains":["Hyperliquid L1"],"tvl_usd":11146025,"change_7d":-8.7232,"mcap_usd":null,"listed_at":"2025-09-25","age_days":415,"implied_value_usd":1984717,"growth_multiplier":0.9477,"maturity_multiplier":0.7516,"chain_multiplier":1,"watchlist":false},{"rank":166,"slug":"echo-bridge","name":"Echo Bridge","category":"Bridge","chains":["BSquared","Bitcoin"],"tvl_usd":8932407,"change_7d":-10.2485,"mcap_usd":null,"listed_at":"2024-08-07","age_days":829,"implied_value_usd":1929984,"growth_multiplier":0.9385,"maturity_multiplier":0.9028,"chain_multiplier":1.02,"watchlist":false},{"rank":167,"slug":"snuggle","name":"Snuggle","category":"Liquidity Manager","chains":["Robinhood Chain","Base","Arbitrum"],"tvl_usd":10681820,"change_7d":-2.7551,"mcap_usd":null,"listed_at":"2026-02-14","age_days":273,"implied_value_usd":1911206,"growth_multiplier":0.9835,"maturity_multiplier":0.6997,"chain_multiplier":1.04,"watchlist":false},{"rank":168,"slug":"vesu","name":"Vesu","category":"Lending","chains":["Starknet"],"tvl_usd":8910633,"change_7d":-10.4678,"mcap_usd":null,"listed_at":"2024-07-12","age_days":855,"implied_value_usd":1904711,"growth_multiplier":0.9372,"maturity_multiplier":0.9123,"chain_multiplier":1,"watchlist":false},{"rank":169,"slug":"tau-labs","name":"TAU Labs","category":"Risk Curators","chains":["Ethereum","Base","Flow","Plasma"],"tvl_usd":10548591,"change_7d":-10.0236,"mcap_usd":null,"listed_at":"2025-12-17","age_days":332,"implied_value_usd":1894985,"growth_multiplier":0.9399,"maturity_multiplier":0.7213,"chain_multiplier":1.06,"watchlist":false},{"rank":170,"slug":"strato-cdp","name":"STRATO CDP","category":"CDP","chains":["Strato"],"tvl_usd":12637917,"change_7d":-18.4478,"mcap_usd":null,"listed_at":"2026-05-15","age_days":183,"implied_value_usd":1873691,"growth_multiplier":0.8893,"maturity_multiplier":0.6668,"chain_multiplier":1,"watchlist":false},{"rank":171,"slug":"mev-capital","name":"MEV Capital","category":"Risk Curators","chains":["Ethereum","Hyperliquid L1","Base","Sui","Avalanche","Arbitrum","Unichain","Sonic","Polygon","Plume","Berachain","Binance"],"tvl_usd":8320641,"change_7d":-11.6085,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":1854046,"growth_multiplier":0.9303,"maturity_multiplier":0.7984,"chain_multiplier":1.2,"watchlist":false},{"rank":172,"slug":"metalx-swap","name":"MetalX Swap","category":"Dexs","chains":["Proton"],"tvl_usd":7194753,"change_7d":4.5779,"mcap_usd":null,"listed_at":"2022-04-04","age_days":1685,"implied_value_usd":1848094,"growth_multiplier":1.0275,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":173,"slug":"kava-mint","name":"Kava Mint","category":"CDP","chains":["Kava"],"tvl_usd":10497149,"change_7d":-8.1034,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":1830908,"growth_multiplier":0.9514,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":174,"slug":"syncswap","name":"SyncSwap","category":"Dexs","chains":["zkSync Era","Linea","Scroll","Sophon"],"tvl_usd":7266961,"change_7d":-8.4085,"mcap_usd":null,"listed_at":"2023-03-27","age_days":1328,"implied_value_usd":1828589,"growth_multiplier":0.9495,"maturity_multiplier":1,"chain_multiplier":1.06,"watchlist":false},{"rank":175,"slug":"superearn","name":"SuperEarn","category":"Yield","chains":["Klaytn"],"tvl_usd":9764948,"change_7d":5.3326,"mcap_usd":null,"listed_at":"2025-12-30","age_days":319,"implied_value_usd":1805186,"growth_multiplier":1.032,"maturity_multiplier":0.7165,"chain_multiplier":1,"watchlist":false},{"rank":176,"slug":"katana-dex","name":"Katana DEX","category":"Dexs","chains":["Ronin"],"tvl_usd":7469630,"change_7d":-10.0969,"mcap_usd":null,"listed_at":"2021-11-07","age_days":1833,"implied_value_usd":1754277,"growth_multiplier":0.9394,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":177,"slug":"exinpool","name":"ExinPool","category":"Liquid Staking","chains":["Mixin"],"tvl_usd":7489041,"change_7d":-11.5095,"mcap_usd":null,"listed_at":"2022-08-22","age_days":1545,"implied_value_usd":1742968,"growth_multiplier":0.9309,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":178,"slug":"set-protocol","name":"Set Protocol","category":"Indexes","chains":["Ethereum"],"tvl_usd":10110428,"change_7d":-12.6978,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":1712360,"growth_multiplier":0.9238,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":179,"slug":"tessera-v","name":"Tessera V","category":"Dexs","chains":["Solana"],"tvl_usd":11128196,"change_7d":-3.7732,"mcap_usd":null,"listed_at":"2026-08-29","age_days":77,"implied_value_usd":1707921,"growth_multiplier":0.9774,"maturity_multiplier":0.6281,"chain_multiplier":1,"watchlist":false},{"rank":180,"slug":"byreal","name":"Byreal","category":"Dexs","chains":["Solana"],"tvl_usd":8878040,"change_7d":-6.9178,"mcap_usd":null,"listed_at":"2025-06-30","age_days":502,"implied_value_usd":1666549,"growth_multiplier":0.9585,"maturity_multiplier":0.7834,"chain_multiplier":1,"watchlist":false},{"rank":181,"slug":"sharpbyte-capital","name":"SharpByte Capital","category":"Risk Curators","chains":["Monad","Ethereum","Fluent"],"tvl_usd":10649873,"change_7d":-8.0812,"mcap_usd":null,"listed_at":"2026-09-03","age_days":72,"implied_value_usd":1650121,"growth_multiplier":0.9515,"maturity_multiplier":0.6263,"chain_multiplier":1.04,"watchlist":false},{"rank":182,"slug":"endur","name":"Endur","category":"Liquid Staking","chains":["Starknet"],"tvl_usd":8170889,"change_7d":-11.9376,"mcap_usd":null,"listed_at":"2024-11-27","age_days":717,"implied_value_usd":1634550,"growth_multiplier":0.9284,"maturity_multiplier":0.8619,"chain_multiplier":1,"watchlist":false},{"rank":183,"slug":"bend","name":"BEND","category":"Lending","chains":["Berachain"],"tvl_usd":9018862,"change_7d":-4.9551,"mcap_usd":null,"listed_at":"2025-10-22","age_days":388,"implied_value_usd":1622680,"growth_multiplier":0.9703,"maturity_multiplier":0.7417,"chain_multiplier":1,"watchlist":false},{"rank":184,"slug":"marginfi-lst","name":"marginfi LST","category":"Liquid Staking","chains":["Solana"],"tvl_usd":7053651,"change_7d":-16.4802,"mcap_usd":null,"listed_at":"2023-09-28","age_days":1143,"implied_value_usd":1589044,"growth_multiplier":0.9011,"maturity_multiplier":1,"chain_multiplier":1,"watchlist":false},{"rank":185,"slug":"abstract","name":"Abstract","category":"Chain","chains":["Ethereum"],"tvl_usd":9383801,"change_7d":-16.0928,"mcap_usd":null,"listed_at":null,"age_days":null,"implied_value_usd":1554251,"growth_multiplier":0.9034,"maturity_multiplier":0.7333,"chain_multiplier":1,"watchlist":false},{"rank":186,"slug":"block-analitica","name":"Block Analitica","category":"Risk Curators","chains":["Base","Ethereum","Arbitrum","Sonic"],"tvl_usd":7739360,"change_7d":-10.154,"mcap_usd":null,"listed_at":"2025-05-20","age_days":543,"implied_value_usd":1537618,"growth_multiplier":0.9391,"maturity_multiplier":0.7984,"chain_multiplier":1.06,"watchlist":false},{"rank":187,"slug":"vena-finance","name":"Vena Finance","category":"Lending","chains":["Fluent"],"tvl_usd":9223143,"change_7d":0.3217,"mcap_usd":null,"listed_at":"2026-05-20","age_days":178,"implied_value_usd":1536360,"growth_multiplier":1.0019,"maturity_multiplier":0.665,"chain_multiplier":1,"watchlist":false},{"rank":188,"slug":"tzbtc","name":"tzBTC","category":"Bridge","chains":["Bitcoin"],"tvl_usd":8205783,"change_7d":-10.5815,"mcap_usd":null,"listed_at":"2025-06-16","age_days":516,"implied_value_usd":1514854,"growth_multiplier":0.9365,"maturity_multiplier":0.7885,"chain_multiplier":1,"watchlist":false},{"rank":189,"slug":"wan-bridge","name":"Wan Bridge","category":"Bridge","chains":["Ethereum","Ripple","Cardano","Bitcoin","Arbitrum","Solana","Binance","Optimism","Avalanche","Polygon","Base","Wanchain","Metis","zkSync Era","Celo","Linea","Litecoin","X Layer","Astar","XDC","Doge","Fantom","Op_Bnb","Noble","Moonriver","Moonbeam","Tron","OKExChain","Telos","FunctionX","Blast","Polygon zkEVM","Bitrock","Energi","Odyssey","Songbird"],"tvl_usd":5193861,"change_7d":-6.8148,"mcap_usd":null,"listed_at":"2022-09-12","age_days":1524,"implied_value_usd":1494447,"growth_multiplier":0.9591,"maturity_multiplier":1,"chain_multiplier":1.2,"watchlist":false},{"rank":190,"slug":"antarctic","name":"Antarctic","category":"Derivatives","chains":["Arbitrum"],"tvl_usd":8365056,"change_7d":-4.5952,"mcap_usd":null,"listed_at":"2025-11-20","age_days":359,"implied_value_usd":1486853,"growth_multiplier":0.9724,"maturity_multiplier":0.7311,"chain_multiplier":1,"watchlist":false},{"rank":191,"slug":"btcfi-cdp","name":"BTCFi CDP","category":"CDP","chains":["Bifrost Network","Bitcoin","Base","CORE"],"tvl_usd":6039993,"change_7d":-10.494,"mcap_usd":null,"listed_at":"2024-04-22","age_days":936,"implied_value_usd":1412705,"growth_multiplier":0.937,"maturity_multiplier":0.9419,"chain_multiplier":1.06,"watchlist":false},{"rank":192,"slug":"prime-staking","name":"Prime Staking","category":"Liquid Staking","chains":["XDC"],"tvl_usd":6911175,"change_7d":-8.007,"mcap_usd":null,"listed_at":"2025-01-06","age_days":677,"implied_value_usd":1393638,"growth_multiplier":0.952,"maturity_multiplier":0.8473,"chain_multiplier":1,"watchlist":false},{"rank":193,"slug":"kton","name":"KTON","category":"Liquid Staking","chains":["TON"],"tvl_usd":6728325,"change_7d":-0.4447,"mcap_usd":null,"listed_at":"2025-05-06","age_days":557,"implied_value_usd":1347896,"growth_multiplier":0.9973,"maturity_multiplier":0.8035,"chain_multiplier":1,"watchlist":false},{"rank":194,"slug":"stablehodl","name":"StableHodl","category":"Yield","chains":["Polygon","Ethereum","Binance","HeLa"],"tvl_usd":6358544,"change_7d":0.0056,"mcap_usd":null,"listed_at":"2025-06-23","age_days":509,"implied_value_usd":1324358,"growth_multiplier":1,"maturity_multiplier":0.7859,"chain_multiplier":1.06,"watchlist":false},{"rank":195,"slug":"defa-by-invoicemate","name":"Defa By InvoiceMate","category":"RWA","chains":["Stellar","ZIGChain","Starknet"],"tvl_usd":7188149,"change_7d":-0.0025,"mcap_usd":null,"listed_at":"2026-02-25","age_days":262,"implied_value_usd":1300202,"growth_multiplier":1,"maturity_multiplier":0.6957,"chain_multiplier":1.04,"watchlist":false},{"rank":196,"slug":"fluxion-network","name":"Fluxion Network","category":"Dexs","chains":["Mantle"],"tvl_usd":7128833,"change_7d":2.0802,"mcap_usd":null,"listed_at":"2026-01-03","age_days":315,"implied_value_usd":1290307,"growth_multiplier":1.0125,"maturity_multiplier":0.7151,"chain_multiplier":1,"watchlist":false},{"rank":197,"slug":"pangolins","name":"Pangolins","category":"Risk Curators","chains":["Base","Binance"],"tvl_usd":8184353,"change_7d":-3.0776,"mcap_usd":null,"listed_at":"2026-09-04","age_days":71,"implied_value_usd":1282213,"growth_multiplier":0.9815,"maturity_multiplier":0.6259,"chain_multiplier":1.02,"watchlist":false},{"rank":198,"slug":"citrea-bridge","name":"Citrea Bridge","category":"Bridge","chains":["Bitcoin","Ethereum"],"tvl_usd":7585063,"change_7d":-10.4947,"mcap_usd":null,"listed_at":"2026-02-02","age_days":285,"implied_value_usd":1276127,"growth_multiplier":0.937,"maturity_multiplier":0.7041,"chain_multiplier":1.02,"watchlist":false},{"rank":199,"slug":"icarus-cl","name":"Icarus CL","category":"Dexs","chains":["RISE"],"tvl_usd":8023861,"change_7d":-0.0588,"mcap_usd":null,"listed_at":"2026-08-21","age_days":85,"implied_value_usd":1265418,"growth_multiplier":0.9996,"maturity_multiplier":0.6311,"chain_multiplier":1,"watchlist":false},{"rank":200,"slug":"turboflow-perps","name":"TurboFlow Perps","category":"Derivatives","chains":["Binance","Solana"],"tvl_usd":6664850,"change_7d":-0.9998,"mcap_usd":null,"listed_at":"2025-11-05","age_days":374,"implied_value_usd":1244404,"growth_multiplier":0.994,"maturity_multiplier":0.7366,"chain_multiplier":1.02,"watchlist":false},{"rank":201,"slug":"stellar-amm","name":"Stellar AMM","category":"Dexs","chains":["Stellar"],"tvl_usd":7656553,"change_7d":-4.4823,"mcap_usd":null,"listed_at":"2026-05-18","age_days":180,"implied_value_usd":1240072,"growth_multiplier":0.9731,"maturity_multiplier":0.6658,"chain_multiplier":1,"watchlist":false},{"rank":202,"slug":"endurance-bridge","name":"Endurance Bridge","category":"Bridge","chains":["Endurance"],"tvl_usd":5816749,"change_7d":-15.1994,"mcap_usd":null,"listed_at":"2024-05-11","age_days":917,"implied_value_usd":1235638,"growth_multiplier":0.9088,"maturity_multiplier":0.935,"chain_multiplier":1,"watchlist":false},{"rank":203,"slug":"boros","name":"Boros","category":"Interest Rate Derivatives","chains":["Arbitrum"],"tvl_usd":6838100,"change_7d":-10.3792,"mcap_usd":null,"listed_at":"2025-08-07","age_days":464,"implied_value_usd":1233554,"growth_multiplier":0.9377,"maturity_multiplier":0.7695,"chain_multiplier":1,"watchlist":false},{"rank":204,"slug":"bulk","name":"BULK","category":"Derivatives","chains":["Solana"],"tvl_usd":7473241,"change_7d":0.4638,"mcap_usd":null,"listed_at":"2026-06-08","age_days":159,"implied_value_usd":1232923,"growth_multiplier":1.0028,"maturity_multiplier":0.6581,"chain_multiplier":1,"watchlist":false},{"rank":205,"slug":"valantis-sthype-restaking","name":"Valantis stHYPE Restaking","category":"Restaking","chains":["Hyperliquid L1"],"tvl_usd":8193911,"change_7d":-1.3102,"mcap_usd":null,"listed_at":"2026-10-30","age_days":15,"implied_value_usd":1230561,"growth_multiplier":0.9921,"maturity_multiplier":0.6055,"chain_multiplier":1,"watchlist":false},{"rank":206,"slug":"biquid","name":"Biquid","category":"Liquid Staking","chains":["Bifrost Network"],"tvl_usd":5743699,"change_7d":-4.6346,"mcap_usd":null,"listed_at":"2024-12-05","age_days":709,"implied_value_usd":1199153,"growth_multiplier":0.9722,"maturity_multiplier":0.859,"chain_multiplier":1,"watchlist":false},{"rank":207,"slug":"subfrost","name":"SUBFROST","category":"Decentralized BTC","chains":["Bitcoin","Ethereum"],"tvl_usd":7781298,"change_7d":-9.3921,"mcap_usd":null,"listed_at":"2026-07-29","age_days":108,"implied_value_usd":1197319,"growth_multiplier":0.9436,"maturity_multiplier":0.6395,"chain_multiplier":1.02,"watchlist":false},{"rank":208,"slug":"granite","name":"Granite","category":"Lending","chains":["Stacks"],"tvl_usd":6183687,"change_7d":-4.2845,"mcap_usd":null,"listed_at":"2025-06-04","age_days":528,"implied_value_usd":1194216,"growth_multiplier":0.9743,"maturity_multiplier":0.7929,"chain_multiplier":1,"watchlist":false},{"rank":209,"slug":"inceptionlrt-(isolated-restaking)","name":"InceptionLRT (Isolated Restaking)","category":"Liquid Restaking","chains":["Ethereum"],"tvl_usd":5352149,"change_7d":-14.3324,"mcap_usd":null,"listed_at":"2024-01-30","age_days":1019,"implied_value_usd":1189021,"growth_multiplier":0.914,"maturity_multiplier":0.9722,"chain_multiplier":1,"watchlist":false},{"rank":210,"slug":"anthias-labs","name":"Anthias Labs","category":"Risk Curators","chains":["Base"],"tvl_usd":7340723,"change_7d":-9.861,"mcap_usd":null,"listed_at":"2026-05-05","age_days":193,"implied_value_usd":1157690,"growth_multiplier":0.9408,"maturity_multiplier":0.6705,"chain_multiplier":1,"watchlist":false},{"rank":211,"slug":"vault-street","name":"Vault Street","category":"RWA","chains":["Ethereum"],"tvl_usd":7001824,"change_7d":-0.5323,"mcap_usd":null,"listed_at":"2026-07-10","age_days":127,"implied_value_usd":1127868,"growth_multiplier":0.9968,"maturity_multiplier":0.6464,"chain_multiplier":1,"watchlist":false},{"rank":212,"slug":"alphagrowth","name":"alphagrowth","category":"Risk Curators","chains":["Base","Unichain","Ethereum","Linea","Monad"],"tvl_usd":5798353,"change_7d":-9.0719,"mcap_usd":null,"listed_at":"2025-10-03","age_days":407,"implied_value_usd":1108295,"growth_multiplier":0.9456,"maturity_multiplier":0.7487,"chain_multiplier":1.08,"watchlist":false},{"rank":213,"slug":"sophon-bridge","name":"Sophon Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":5166379,"change_7d":0.2355,"mcap_usd":null,"listed_at":"2025-01-10","age_days":673,"implied_value_usd":1094032,"growth_multiplier":1.0014,"maturity_multiplier":0.8458,"chain_multiplier":1,"watchlist":false},{"rank":214,"slug":"aftermath-aflp","name":"Aftermath afLP","category":"Yield","chains":["Sui"],"tvl_usd":6451190,"change_7d":-1.7294,"mcap_usd":null,"listed_at":"2026-03-26","age_days":233,"implied_value_usd":1093485,"growth_multiplier":0.9896,"maturity_multiplier":0.6851,"chain_multiplier":1,"watchlist":false},{"rank":215,"slug":"shmonad","name":"ShMonad","category":"Liquid Staking","chains":["Monad"],"tvl_usd":5875911,"change_7d":2.8859,"mcap_usd":null,"listed_at":"2025-11-25","age_days":354,"implied_value_usd":1089898,"growth_multiplier":1.0173,"maturity_multiplier":0.7293,"chain_multiplier":1,"watchlist":false},{"rank":216,"slug":"hertzflow","name":"HertzFlow","category":"Derivatives","chains":["Binance"],"tvl_usd":6937718,"change_7d":0.0088,"mcap_usd":null,"listed_at":"2026-08-31","age_days":75,"implied_value_usd":1088234,"growth_multiplier":1.0001,"maturity_multiplier":0.6274,"chain_multiplier":1,"watchlist":false},{"rank":217,"slug":"valdora-finance","name":"Valdora Finance","category":"Liquid Staking","chains":["ZIGChain"],"tvl_usd":6208480,"change_7d":-11.8803,"mcap_usd":null,"listed_at":"2025-11-13","age_days":366,"implied_value_usd":1057613,"growth_multiplier":0.9287,"maturity_multiplier":0.7337,"chain_multiplier":1,"watchlist":false},{"rank":218,"slug":"mezzanine","name":"Mezzanine","category":"Yield","chains":["Ethereum","Solana"],"tvl_usd":5851280,"change_7d":18.5975,"mcap_usd":null,"listed_at":"2026-10-27","age_days":18,"implied_value_usd":1006048,"growth_multiplier":1.1116,"maturity_multiplier":0.6066,"chain_multiplier":1.02,"watchlist":false},{"rank":219,"slug":"flying-tulip-ftusd","name":"Flying Tulip ftUSD","category":"Yield Aggregator","chains":["Ethereum","Sonic","Binance"],"tvl_usd":5694315,"change_7d":-1.6033,"mcap_usd":null,"listed_at":"2026-04-27","age_days":201,"implied_value_usd":987429,"growth_multiplier":0.9904,"maturity_multiplier":0.6734,"chain_multiplier":1.04,"watchlist":false},{"rank":220,"slug":"nucleus","name":"Nucleus","category":"Yield Aggregator","chains":["Plume Mainnet","Ethereum","Arbitrum","Swellchain"],"tvl_usd":5007171,"change_7d":-24.2361,"mcap_usd":null,"listed_at":"2024-12-11","age_days":703,"implied_value_usd":971570,"growth_multiplier":0.8546,"maturity_multiplier":0.8568,"chain_multiplier":1.06,"watchlist":false},{"rank":221,"slug":"temple","name":"Temple","category":"Dexs","chains":["Canton"],"tvl_usd":6296885,"change_7d":-5.3161,"mcap_usd":null,"listed_at":"2026-08-11","age_days":95,"implied_value_usd":967293,"growth_multiplier":0.9681,"maturity_multiplier":0.6347,"chain_multiplier":1,"watchlist":false},{"rank":222,"slug":"loopscale-curation","name":"Loopscale Curation","category":"Risk Curators","chains":["Solana"],"tvl_usd":6374060,"change_7d":-3.5755,"mcap_usd":null,"listed_at":"2026-09-30","age_days":45,"implied_value_usd":961230,"growth_multiplier":0.9785,"maturity_multiplier":0.6164,"chain_multiplier":1,"watchlist":false},{"rank":223,"slug":"swan-dao","name":"Swan DAO","category":"CDP","chains":["Ethereum"],"tvl_usd":6142072,"change_7d":null,"mcap_usd":null,"listed_at":"2026-11-12","age_days":2,"implied_value_usd":922433,"growth_multiplier":1,"maturity_multiplier":0.6007,"chain_multiplier":1,"watchlist":false},{"rank":224,"slug":"damm-capital","name":"DAMM Capital","category":"Risk Curators","chains":["Ethereum","Arbitrum"],"tvl_usd":5816640,"change_7d":-10.5582,"mcap_usd":null,"listed_at":"2026-09-10","age_days":65,"implied_value_usd":866556,"growth_multiplier":0.9367,"maturity_multiplier":0.6237,"chain_multiplier":1.02,"watchlist":false},{"rank":225,"slug":"goonfi","name":"GoonFi","category":"Dexs","chains":["Solana"],"tvl_usd":5227088,"change_7d":-2.2019,"mcap_usd":null,"listed_at":"2026-08-31","age_days":75,"implied_value_usd":809034,"growth_multiplier":0.9868,"maturity_multiplier":0.6274,"chain_multiplier":1,"watchlist":false},{"rank":226,"slug":"monarq","name":"Monarq","category":"Risk Curators","chains":["Flare"],"tvl_usd":5132234,"change_7d":-18.5227,"mcap_usd":null,"listed_at":"2026-09-08","age_days":67,"implied_value_usd":712191,"growth_multiplier":0.8889,"maturity_multiplier":0.6245,"chain_multiplier":1,"watchlist":false}],"live":[{"slug":"rain","name":"Rain","category":"Prediction Market","chains":["Arbitrum"],"tvl_usd":6612528,"mcap_usd":2646363290,"change_7d":-36.6488},{"slug":"aave-v2","name":"Aave V2","category":"Lending","chains":["Ethereum","Polygon","Avalanche"],"tvl_usd":90919562,"mcap_usd":1723499485,"change_7d":-7.8689},{"slug":"mantle-bridge","name":"Mantle Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":91611319,"mcap_usd":1332654362,"change_7d":-14.5449},{"slug":"bitway-earn","name":"Bitway Earn","category":"Basis Trading","chains":["Binance"],"tvl_usd":33419734,"mcap_usd":1208793873,"change_7d":-0.4055},{"slug":"polygon-bridge","name":"Polygon Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":2561365424,"mcap_usd":901671433,"change_7d":-4.6646},{"slug":"falcon-finance","name":"Falcon Finance","category":"Basis Trading","chains":["Ethereum"],"tvl_usd":1557707205,"mcap_usd":318146200,"change_7d":-6.1005},{"slug":"starknet-bridge","name":"Starknet Bridge","category":"Canonical Bridge","chains":["Ethereum"],"tvl_usd":213051107,"mcap_usd":286418424,"change_7d":-10.4613},{"slug":"lido","name":"Lido","category":"Liquid Staking","chains":["Ethereum","Solana","Terra","Moonriver","Moonbeam"],"tvl_usd":18721539391,"mcap_usd":251037363,"change_7d":-13.9722},{"slug":"flokifi-locker","name":"FlokiFi Locker","category":"Token Locker","chains":["Binance","Ethereum","Base","Cronos","Arbitrum","Optimism","Avalanche","Fantom","Polygon","Kucoin","Op_Bnb","OKExChain","Evmos","Dogechain","Blast"],"tvl_usd":10045588,"mcap_usd":190621074,"change_7d":-10.5477},{"slug":"thorchain-dex","name":"THORChain DEX","category":"Dexs","chains":["Thorchain","Bitcoin","Ethereum","Binance","Bitcoincash","Ripple","Avalanche","Doge","Litecoin","Tron","Base","Cosmos","Solana"],"tvl_usd":56421343,"mcap_usd":179551766,"change_7d":-7.662},{"slug":"cap","name":"cap","category":"Lending","chains":["Ethereum"],"tvl_usd":159772077,"mcap_usd":166714858,"change_7d":-12.0202},{"slug":"anvil","name":"Anvil","category":"Collateral Management","chains":["Ethereum"],"tvl_usd":13125243,"mcap_usd":159606035,"change_7d":-8.6811},{"slug":"eigencloud","name":"EigenCloud","category":"Restaking","chains":["Ethereum"],"tvl_usd":4903633832,"mcap_usd":155971221,"change_7d":-14.3731},{"slug":"convex-finance","name":"Convex Finance","category":"Yield","chains":["Ethereum","Fraxtal","Arbitrum","Polygon"],"tvl_usd":461947766,"mcap_usd":148210942,"change_7d":-9.0571},{"slug":"zama","name":"Zama","category":"Privacy","chains":["Ethereum"],"tvl_usd":90279448,"mcap_usd":147586329,"change_7d":-17.4161},{"slug":"railgun","name":"Railgun","category":"Privacy","chains":["Ethereum","Arbitrum","Binance","Polygon"],"tvl_usd":107702928,"mcap_usd":104378062,"change_7d":0.4841},{"slug":"reserve-protocol","name":"Reserve Protocol","category":"Indexes","chains":["Ethereum","Base","Binance","Arbitrum"],"tvl_usd":43278603,"mcap_usd":89351713,"change_7d":-6.3309},{"slug":"chutes","name":"Chutes","category":"Decentralized AI","chains":["Bittensor"],"tvl_usd":40658464,"mcap_usd":83774453,"change_7d":-10.3038},{"slug":"portal","name":"Portal","category":"Bridge","chains":["Ethereum","Algorand","Binance","Solana","Polygon","Near","Avalanche","Sui","Base","Arbitrum","Optimism","Aptos","Celo","Klaytn","Terra","Oasis","Aurora","Fantom","Karura","Acala","Moonbeam","Terra2","Injective","XPLA"],"tvl_usd":1285806408,"mcap_usd":66593224,"change_7d":-5.8427},{"slug":"usd-ai","name":"USD AI","category":"RWA","chains":["Arbitrum"],"tvl_usd":157258085,"mcap_usd":63408224,"change_7d":-0.5488},{"slug":"flying-tulip-lend","name":"Flying Tulip Lend","category":"Lending","chains":["Ethereum","Sonic","Binance"],"tvl_usd":10077743,"mcap_usd":51699732,"change_7d":-9.7513},{"slug":"babylon-protocol","name":"Babylon Protocol","category":"Restaking","chains":["Bitcoin"],"tvl_usd":2790066912,"mcap_usd":48746633,"change_7d":-9.9953},{"slug":"sushiswap","name":"SushiSwap","category":"Dexs","chains":["Ethereum","Polygon","Arbitrum","Base","Boba","xDai","Binance","Celo","Arbitrum Nova","Avalanche","Fantom","Fuse","Scroll","Optimism","Katana","Linea","Filecoin","CORE","RSK","Hemi","Bittorrent","Europa","Telos","Arc","ZetaChain","Sonic","Metis","Kava","HAQQ","Palm","Moonriver","OKExChain","Harmony","Heco","Boba_Bnb","Blast","Moonbeam","Polygon zkEVM","ThunderCore"],"tvl_usd":31730814,"mcap_usd":48362138,"change_7d":-10.5038},{"slug":"merlins-seal","name":"Merlins Seal","category":"Bridge","chains":["Bitcoin","Ethereum","Arbitrum","Zkfair"],"tvl_usd":350240199,"mcap_usd":43782431,"change_7d":-10.5131}]};
+
+</script>
+<script>history.replaceState(null,'','#p=steakhouse-financial');</script>
+<script>
+// Token Radar, radar-2 dashboard. It reads window.RADAR (written beside dashboard/ by main.ts)
+// and renders the ranked board, a filterable table, a per-protocol detail drawer with the model's
+// own inputs and the protocol's farm plan, plus a model sandbox that recomputes every row live.
+// No network: every byte it shows is in data.js.
+(function () {
+  'use strict';
+
+  var DATA = window.RADAR;
+  if (!DATA) return;
+  var app = document.getElementById('board');
+  var state = { q: '', category: 'all', chain: 'all', watchOnly: false, tab: 'pre-token', sort: 'implied', dir: -1, selected: null, sandbox: null };
+
+  var usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  function fmtUsd(n) {
+    if (n === null || n === undefined || !isFinite(n)) return 'n/a';
+    if (Math.abs(n) >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+    if (Math.abs(n) >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+    if (Math.abs(n) >= 1e3) return '$' + Math.round(n / 1e3) + 'K';
+    return usd.format(n);
+  }
+  function fmtPct(n) {
+    if (n === null || n === undefined || !isFinite(n)) return 'n/a';
+    return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
+  }
+  function fmtAge(days) {
+    if (days === null || days === undefined) return 'unknown';
+    if (days >= 365) return (days / 365).toFixed(1) + 'y';
+    return Math.max(0, Math.round(days)) + 'd';
+  }
+  // The model in one function, radar-2: TVL x base multiple, growth, maturity and chain breadth.
+  // The page recomputes a row from the snapshot figures and checks the number board.json carries,
+  // so the page's code and the board's data are visibly the same arithmetic.
+  function impliedOf(row, model) {
+    var growth = Math.min(model.growth_cap, Math.max(model.growth_floor, row.change_7d === null || row.change_7d === undefined ? 0 : row.change_7d));
+    var growthMult = 1 + (growth / 100) * model.growth_weight;
+    var age = row.age_days === null || row.age_days === undefined ? model.unknown_age_days : row.age_days;
+    var maturity = model.maturity_floor + (Math.min(Math.max(age, 0), model.maturity_days) / model.maturity_days) * model.maturity_range;
+    var chainMult = 1 + model.chain_bonus * Math.min(Math.max((row.chains || []).length - 1, 0), model.chain_cap);
+    return Math.max(1, Math.round(row.tvl_usd * model.base_multiple * growthMult * maturity * chainMult));
+  }
+  function displayValue(row) {
+    if (!state.sandbox) return row.implied_value_usd;
+    return impliedOf(row, state.sandbox);
+  }
+  function isWatchlist(row) { return !!row.watchlist; }
+
+  function el(tag, attrs) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'class') node.className = attrs[k];
+        else if (k === 'text') node.textContent = attrs[k];
+        else if (k === 'html') node.innerHTML = attrs[k];
+        else if (k.slice(0, 2) === 'on') node.addEventListener(k.slice(2), attrs[k]);
+        else if (attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, attrs[k]);
+      });
+    }
+    for (var i = 2; i < arguments.length; i++) {
+      var child = arguments[i];
+      if (child === null || child === undefined) continue;
+      if (Array.isArray(child)) child.forEach(function (c) { if (c) node.appendChild(c); });
+      else if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+      else node.appendChild(child);
+    }
+    return node;
+  }
+
+  // The farm plan is the same derivation main.ts writes to board.json: category, chains, TVL, age
+  // and growth decide the action, the capital, the hold and every cost and time. No name is
+  // special-cased.
+  function chainOf(p) { return p.chains && p.chains.length > 0 ? p.chains[0] : 'its main chain'; }
+  function capitalFor(p) {
+    if (p.tvl_usd >= 5e9) return 250;
+    if (p.tvl_usd >= 1e9) return 150;
+    if (p.tvl_usd >= 1e8) return 100;
+    return 50;
+  }
+  function holdDaysFor(age) {
+    if (age === null || age === undefined) return 30;
+    if (age < 180) return 60;
+    if (age < 365) return 45;
+    return 30;
+  }
+  function actionFor(p, capital, chain) {
+    var c = (p.category || '').toLowerCase();
+    var name = p.name;
+    if (c.indexOf('lend') >= 0 || c.indexOf('cdp') >= 0 || c.indexOf('collateral') >= 0) return 'Supply $' + capital + ' of USDC to ' + name + ' on ' + chain + ' and keep the position open; borrow a small amount against it once, so the wallet shows both sides of the market.';
+    if (c.indexOf('dex') >= 0 || c.indexOf('yield') >= 0 || c.indexOf('leveraged farm') >= 0) return 'Provide $' + capital + ' of liquidity to ' + name + "'s main pool on " + chain + ' and keep the position open through one fee cycle.';
+    if (c.indexOf('bridge') >= 0 || c.indexOf('cross chain') >= 0) return 'Bridge $' + capital + ' of USDC to ' + chain + ' through ' + name + ' and use the bridged funds in its app, instead of bridging straight back.';
+    if (c.indexOf('staking') >= 0 || c.indexOf('restak') >= 0) return "Stake $" + capital + " of the chain's staking asset through " + name + ' and keep the receipt token in the same wallet.';
+    if (c.indexOf('perpetual') >= 0 || c.indexOf('derivative') >= 0) return 'Deposit $' + capital + ' of USDC as margin on ' + name + ' and open one small hedge, then close it; do not leave leverage open.';
+    if (c.indexOf('prediction') >= 0) return 'Fund $' + capital + ' and place one market position on ' + name + ', then settle it in the same wallet.';
+    if (c.indexOf('curator') >= 0 || c.indexOf('allocator') >= 0 || c.indexOf('risk') >= 0) return 'Deposit $' + capital + ' into a ' + name + ' vault on ' + chain + ' and keep the shares for the whole hold period.';
+    if (c.indexOf('stable') >= 0) return 'Mint or deposit $' + capital + ' of the stable asset through ' + name + ' on ' + chain + ' and hold it in the farming wallet.';
+    if (c.indexOf('rwa') >= 0) return "Mint $" + capital + " of the protocol's yield asset on " + chain + ' and hold it; keep the mint receipt.';
+    if (c.indexOf('insurance') >= 0) return 'Buy $' + capital + ' of cover from ' + name + ' on ' + chain + ' and keep the policy active for the hold period.';
+    if (c.indexOf('basis') >= 0) return 'Deposit $' + capital + " into " + name + "'s basis position on " + chain + ' and keep it through one funding cycle.';
+    if (c.indexOf('chain') >= 0) return 'Use $' + capital + ' on ' + name + "'s chain: send one transaction a week in its own app, not only a transfer.";
+    if (c.indexOf('btc') >= 0 || c.indexOf('anchor') >= 0) return 'Deposit $' + capital + ' of BTC exposure through ' + name + ' on ' + chain + ' and keep the wrapped receipt.';
+    if (c.indexOf('liquid') >= 0) return 'Hold $' + capital + " of " + name + "'s liquid receipt token in the farming wallet and use it once in its app.";
+    if (c.indexOf('aggregator') >= 0 || c.indexOf('manager') >= 0) return 'Deposit $' + capital + ' into ' + name + "'s main vault on " + chain + ' and let it rebalance once before you touch it.';
+    if (c.indexOf('payment') >= 0 || c.indexOf('card') >= 0) return 'Spend $' + capital + ' through ' + name + ' on ' + chain + ' over two separate weeks, from the farming wallet.';
+    if (c.indexOf('otc') >= 0 || c.indexOf('marketplace') >= 0) return 'Place one $' + capital + ' order through ' + name + ' on ' + chain + ' and settle it in the farming wallet.';
+    return 'Deposit $' + capital + ' of USDC into ' + name + ' on ' + chain + ' and keep the position open.';
+  }
+  function stepText(step) {
+    var s = step.text + ' Cost: ' + step.cost + '. Time: ' + step.time + '.';
+    if (s.length > 600) s = s.slice(0, 596) + '...';
+    if (s.length < 20) s = s + " Hold the position and check the protocol's own page.";
+    return s;
+  }
+  function farmSteps(p) {
+    var chain = chainOf(p);
+    var capital = capitalFor(p);
+    var hold = holdDaysFor(p.age_days);
+    var second = null;
+    if (p.chains && p.chains.length >= 2) second = 'Repeat the same position with $' + Math.max(25, Math.round(capital / 2)) + ' on ' + p.chains[1] + ", the protocol's second chain, so the wallet is active on two chains.";
+    var growing = (p.change_7d === null || p.change_7d === undefined ? 0 : p.change_7d) > 20;
+    return [
+      { text: 'Use a fresh wallet that holds only the funds you plan to farm, and keep its seed phrase offline.', cost: 'under $3 of gas for the first transaction', time: '5 minutes' },
+      { text: actionFor(p, capital, chain), cost: '$' + capital + ' of capital and about $' + (capital >= 150 ? 8 : 4) + ' of gas', time: '15 minutes to set up' },
+      { text: second || 'Make a second, different action in the same protocol, such as a swap or a vote, so the wallet is not a one-deposit address.', cost: second ? 'about $' + Math.max(25, Math.round(capital / 2)) + ' of capital and $2 of gas' : 'about $2 of gas', time: '10 minutes' },
+      { text: growing ? 'Make one qualifying action each week while TVL is growing fast, such as a deposit, a borrow, a swap or a vote, and do it twice in the first month.' : 'Make one qualifying action each week, such as a deposit, a borrow, a swap or a vote.', cost: 'about $2 of gas a week', time: '10 minutes a week' },
+      { text: 'Hold the position for at least ' + hold + ' days so the activity is counted in more than one snapshot.', cost: 'the $' + capital + ' stays in the position', time: hold + ' days' },
+      { text: "Before you withdraw, open the protocol's own points or rewards page and claim only from the link it publishes.", cost: 'no fee to check, and never pay to claim', time: '10 minutes' },
+      { text: 'Write the wallet, the dates and every transaction in a farm log so you can repeat the position or unwind it.', cost: 'nothing but the log', time: '5 minutes' }
+    ].map(stepText);
+  }
+
+  function readHash() {
+    var hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+    var params = new URLSearchParams(hash);
+    if (params.get('q')) state.q = params.get('q');
+    if (params.get('p')) state.selected = params.get('p');
+    if (params.get('category')) state.category = params.get('category');
+    if (params.get('chain')) state.chain = params.get('chain');
+    if (params.get('watch') === '1') state.watchOnly = true;
+  }
+  function writeHash() {
+    var params = new URLSearchParams();
+    if (state.q) params.set('q', state.q);
+    if (state.category !== 'all') params.set('category', state.category);
+    if (state.chain !== 'all') params.set('chain', state.chain);
+    if (state.watchOnly) params.set('watch', '1');
+    if (state.selected) params.set('p', state.selected);
+    var next = params.toString();
+    if (next) window.history.replaceState(null, '', '#' + next);
+    else window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
+  function rows() {
+    var q = state.q.trim().toLowerCase();
+    return DATA.rows.filter(function (r) {
+      if (state.category !== 'all' && r.category !== state.category) return false;
+      if (state.chain !== 'all' && !(r.chains || []).includes(state.chain)) return false;
+      if (state.watchOnly && !isWatchlist(r)) return false;
+      if (!q) return true;
+      var hay = [r.name, r.slug, r.category, (r.chains || []).join(' ')].join(' ').toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+  function sortedRows(list) {
+    var key = state.sort;
+    return list.slice().sort(function (a, b) {
+      var av, bv;
+      if (key === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+      else if (key === 'tvl') { av = a.tvl_usd; bv = b.tvl_usd; }
+      else if (key === 'growth') { av = a.change_7d === null ? -Infinity : a.change_7d; bv = b.change_7d === null ? -Infinity : b.change_7d; }
+      else if (key === 'age') { av = a.age_days === null ? Infinity : a.age_days; bv = b.age_days === null ? Infinity : b.age_days; }
+      else if (key === 'chains') { av = (a.chains || []).length; bv = (b.chains || []).length; }
+      else { av = displayValue(a); bv = displayValue(b); }
+      if (av < bv) return -state.dir;
+      if (av > bv) return state.dir;
+      return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
+    });
+  }
+
+  function hero() {
+    var top = DATA.rows.slice(0, 5);
+    return el('header', { class: 'hero' },
+      el('div', { class: 'top' },
+        el('div', { class: 'brand' }, el('span', { class: 'mark' }), el('span', { class: 'brand-name', text: 'Token Radar' })),
+        el('div', { class: 'top-meta' },
+          el('span', { text: 'Snapshot ' + DATA.as_of }),
+          el('span', { text: 'DefiLlama protocol index' }),
+          el('span', { text: DATA.model_version + ' model' })
+        )
+      ),
+      el('h1', { text: DATA.watchlist_size + ' watchlist protocols, ranked by implied value' }),
+      el('p', { text: 'The watchlist is the floor: every protocol with at least $' + Math.round(DATA.floor_usd / 1e6) + 'M of TVL and no token on record. The early radar adds ' + DATA.early_size + ' pre-token protocols below that floor. Implied value is a model, not a promise.' }),
+      el('div', { class: 'spot' }, top.map(function (r) {
+        return el('button', { type: 'button', class: 'spot-card', onclick: function () { openDetail(r.slug); } },
+          el('span', { class: 'rank', text: '#' + r.rank + ' implied value' }),
+          el('b', { text: r.name }),
+          el('span', { class: 'num', text: fmtUsd(displayValue(r)) }),
+          el('span', { class: 'sub', text: fmtUsd(r.tvl_usd) + ' TVL · ' + fmtPct(r.change_7d) + ' in 7d' })
+        );
+      }))
+    );
+  }
+
+  function facts() {
+    var totalTvl = DATA.rows.reduce(function (n, r) { return n + r.tvl_usd; }, 0);
+    var growing = DATA.rows.filter(function (r) { return (r.change_7d || 0) > 0; }).length;
+    return el('section', { class: 'facts' },
+      el('div', { class: 'fact' }, el('b', { text: DATA.watchlist_size + ' / ' + DATA.watchlist_size }), el('span', { text: 'Watchlist covered' })),
+      el('div', { class: 'fact' }, el('b', { text: String(DATA.board_size) }), el('span', { text: 'Pre-token rows scored' })),
+      el('div', { class: 'fact' }, el('b', { text: String(DATA.early_size) }), el('span', { text: 'Early rows below the floor' })),
+      el('div', { class: 'fact' }, el('b', { text: fmtUsd(totalTvl) }), el('span', { text: 'TVL on the board · ' + growing + ' rows growing' }))
+    );
+  }
+
+  function controls() {
+    var categories = Array.from(new Set(DATA.rows.map(function (r) { return r.category || 'Other'; }))).sort();
+    var chains = Array.from(new Set(DATA.rows.reduce(function (all, r) { return all.concat(r.chains || []); }, []))).sort();
+    var search = el('input', { type: 'search', id: 'q', placeholder: 'Search name, category or chain', value: state.q, 'aria-label': 'Search the board' });
+    search.addEventListener('input', function () { state.q = search.value; writeHash(); render(); });
+    var select = el('select', { id: 'category', 'aria-label': 'Filter by category' },
+      el('option', { value: 'all', text: 'All categories' }),
+      categories.map(function (c) { return el('option', { value: c, text: c, selected: c === state.category ? 'selected' : null }); })
+    );
+    select.addEventListener('change', function () { state.category = select.value; writeHash(); render(); });
+    var chainSelect = el('select', { id: 'chain', 'aria-label': 'Filter by chain' },
+      el('option', { value: 'all', text: 'All chains' }),
+      chains.map(function (c) { return el('option', { value: c, text: c, selected: c === state.chain ? 'selected' : null }); })
+    );
+    chainSelect.addEventListener('change', function () { state.chain = chainSelect.value; writeHash(); render(); });
+    var watchBox = el('input', { type: 'checkbox', id: 'watch', checked: state.watchOnly ? 'checked' : null, 'aria-label': 'Watchlist only' });
+    watchBox.addEventListener('change', function () { state.watchOnly = watchBox.checked; writeHash(); render(); });
+    var pre = el('button', { type: 'button', 'aria-pressed': state.tab === 'pre-token' ? 'true' : 'false', text: 'Pre-token', onclick: function () { state.tab = 'pre-token'; render(); } });
+    var live = el('button', { type: 'button', 'aria-pressed': state.tab === 'live' ? 'true' : 'false', text: 'Live token', onclick: function () { state.tab = 'live'; render(); } });
+    return el('div', { class: 'controls' },
+      el('div', { class: 'field' }, el('label', { for: 'q', text: 'Search' }), search),
+      el('div', { class: 'field' }, el('label', { for: 'category', text: 'Category' }), select),
+      el('div', { class: 'field' }, el('label', { for: 'chain', text: 'Chain' }), chainSelect),
+      el('label', { class: 'check', for: 'watch' }, watchBox, 'Watchlist only'),
+      el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, live)),
+      el('span', { class: 'count', text: state.tab === 'pre-token' ? rows().length + ' rows shown' : DATA.live.length + ' live-token protocols' })
+    );
+  }
+
+  function sortHeader(key, label) {
+    return el('th', { scope: 'col' },
+      el('button', { type: 'button', onclick: function () { if (state.sort === key) state.dir = -state.dir; else { state.sort = key; state.dir = -1; } render(); } },
+        label,
+        state.sort === key ? el('span', { 'aria-hidden': 'true', text: state.dir < 0 ? ' v' : ' ^' }) : null
+      )
+    );
+  }
+
+  function boardTable() {
+    var list = sortedRows(rows());
+    if (list.length === 0) {
+      return el('div', { class: 'panel' }, el('div', { class: 'empty' },
+        el('h2', { text: 'No protocol matches that filter' }),
+        el('p', { text: 'Clear the search or pick another category to see the board again.' }),
+        el('button', { class: 'button primary', type: 'button', text: 'Clear filters', onclick: function () { state.q = ''; state.category = 'all'; state.chain = 'all'; state.watchOnly = false; writeHash(); render(); } })
+      ));
+    }
+    var max = Math.max.apply(null, list.map(function (r) { return displayValue(r); })) || 1;
+    var tbody = el('tbody');
+    list.forEach(function (r) {
+      var growth = r.change_7d === null ? 'n/a' : fmtPct(r.change_7d);
+      var growthClass = r.change_7d === null ? '' : r.change_7d >= 0 ? 'pos' : 'neg';
+      var tr = el('tr', {
+        'data-selected': state.selected === r.slug ? 'true' : 'false',
+        tabindex: '0',
+        onclick: function () { openDetail(r.slug); },
+        onkeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(r.slug); } }
+      },
+        el('td', { class: 'num', text: String(r.rank) }),
+        el('td', null, el('div', { class: 'name' },
+          el('b', { text: r.name }),
+          el('span', { class: 'sub', text: (r.category || 'Other') + ' on ' + (r.chains && r.chains.length ? r.chains.slice(0, 2).join(', ') : 'an unnamed chain') })
+        )),
+        el('td', { class: 'num', text: fmtUsd(r.tvl_usd) }),
+        el('td', { class: 'num ' + growthClass, text: growth }),
+        el('td', { class: 'num', text: fmtAge(r.age_days) }),
+        el('td', { class: 'num', text: String((r.chains || []).length) }),
+        el('td', null, el('div', { class: 'implied' },
+          el('div', { class: 'bar', 'aria-hidden': 'true' }, el('i', { style: 'width:' + Math.max(3, Math.round((displayValue(r) / max) * 100)) + '%' })),
+          el('span', { class: 'num', text: fmtUsd(displayValue(r)) })
+        )),
+        el('td', null, el('span', { class: 'badge ' + (isWatchlist(r) ? '' : 'early'), text: isWatchlist(r) ? 'watchlist' : 'early' }))
+      );
+      tbody.appendChild(tr);
+    });
+    return el('div', { class: 'panel' },
+      el('div', { class: 'table-wrap' },
+        el('table', null,
+          el('caption', { class: 'sub', text: 'Pre-token protocols, strongest implied value first. Select a row for its model and farm plan.' + (state.sandbox ? ' Sandbox on: values below are your model, not board.json.' : '') }),
+          el('thead', null, el('tr', null,
+            sortHeader('implied', 'Rank'),
+            sortHeader('name', 'Protocol'),
+            sortHeader('tvl', 'TVL'),
+            sortHeader('growth', '7d'),
+            sortHeader('age', 'Age'),
+            sortHeader('chains', 'Chains'),
+            sortHeader('implied', 'Implied value'),
+            el('th', { scope: 'col', text: 'List' })
+          )),
+          tbody
+        )
+      )
+    );
+  }
+
+  function liveTable() {
+    var tbody = el('tbody');
+    DATA.live.forEach(function (r) {
+      tbody.appendChild(el('tr', null,
+        el('td', { class: 'num', text: 'live' }),
+        el('td', null, el('div', { class: 'name' }, el('b', { text: r.name }), el('span', { class: 'sub', text: (r.category || 'Other') + ' on ' + (r.chains && r.chains.length ? r.chains.slice(0, 2).join(', ') : 'an unnamed chain') }))),
+        el('td', { class: 'num', text: fmtUsd(r.tvl_usd) }),
+        el('td', { class: 'num ' + (r.change_7d !== null && r.change_7d >= 0 ? 'pos' : 'neg'), text: fmtPct(r.change_7d) }),
+        el('td', { class: 'num', text: fmtUsd(r.mcap_usd) }),
+        el('td', null, el('span', { class: 'status live', text: 'already trades' }))
+      ));
+    });
+    return el('div', { class: 'panel' },
+      el('div', { class: 'table-wrap' },
+        el('table', null,
+          el('caption', { class: 'sub', text: 'Token live: these protocols already trade, so their market cap is a fact, not a model. They are set aside from the pre-token ranking.' }),
+          el('thead', null, el('tr', null, el('th', { scope: 'col', text: 'Status' }), el('th', { scope: 'col', text: 'Protocol' }), el('th', { scope: 'col', text: 'TVL' }), el('th', { scope: 'col', text: '7d' }), el('th', { scope: 'col', text: 'Market cap' }), el('th', { scope: 'col', text: 'Token' }))),
+          tbody
+        )
+      )
+    );
+  }
+
+  function sandboxSlider(id, label, min, max, step, value, fmt, oninput) {
+    var out = el('output', { for: id, text: fmt(value) });
+    var input = el('input', { type: 'range', id: id, min: String(min), max: String(max), step: String(step), value: String(value), 'aria-label': label });
+    input.addEventListener('input', function () { oninput(parseFloat(input.value)); out.textContent = fmt(parseFloat(input.value)); render(); });
+    return el('div', { class: 'field' }, el('label', { for: id, text: label }), input, out);
+  }
+  function defaultSandbox() {
+    return { base_multiple: DATA.model.base_multiple, growth_weight: DATA.model.growth_weight, chain_bonus: DATA.model.chain_bonus, growth_floor: DATA.model.growth_floor, growth_cap: DATA.model.growth_cap, maturity_floor: DATA.model.maturity_floor, maturity_range: DATA.model.maturity_range, maturity_days: DATA.model.maturity_days, unknown_age_days: DATA.model.unknown_age_days, chain_cap: DATA.model.chain_cap };
+  }
+  function modelPanel() {
+    var m = DATA.model;
+    var sandbox = el('div', { class: 'sandbox' },
+      sandboxSlider('sb-base', 'TVL multiple', 0.1, 0.5, 0.01, state.sandbox ? state.sandbox.base_multiple : m.base_multiple, function (v) { return 'x ' + v.toFixed(2); }, function (v) { state.sandbox = state.sandbox || defaultSandbox(); state.sandbox.base_multiple = v; }),
+      sandboxSlider('sb-growth', 'Growth weight', 0, 1, 0.05, state.sandbox ? state.sandbox.growth_weight : m.growth_weight, function (v) { return 'x ' + v.toFixed(2); }, function (v) { state.sandbox = state.sandbox || defaultSandbox(); state.sandbox.growth_weight = v; }),
+      sandboxSlider('sb-chain', 'Chain bonus', 0, 0.05, 0.005, state.sandbox ? state.sandbox.chain_bonus : m.chain_bonus, function (v) { return '+' + (v * 100).toFixed(1) + '% / chain'; }, function (v) { state.sandbox = state.sandbox || defaultSandbox(); state.sandbox.chain_bonus = v; })
+    );
+    var reset = el('button', { class: 'button', type: 'button', text: 'Reset to radar-2', onclick: function () { state.sandbox = null; render(); } });
+    return el('section', { class: 'panel model' },
+      el('h2', { text: 'How implied value is computed' }),
+      el('p', { class: 'sub', text: 'Every row is scored by one function of the snapshot figures. No protocol name is special-cased, and no row is hand-picked.' }),
+      el('div', { class: 'formula' },
+        'implied = round( tvl_usd x ' + m.base_multiple + ' x (1 + clamp(change_7d, ' + m.growth_floor + ', ' + m.growth_cap + ') / 100 x ' + m.growth_weight + ') x (' + m.maturity_floor + ' + min(age_days, ' + m.maturity_days + ') / ' + m.maturity_days + ' x ' + m.maturity_range + ') x (1 + ' + m.chain_bonus + ' x min(chains - 1, ' + m.chain_cap + ')) )'
+      ),
+      el('p', { class: 'sub', text: 'TVL and seven-day growth come from the snapshot. Age is the time since the protocol was first listed, the best record of how long it has run with no token; an unlisted age uses ' + m.unknown_age_days + ' days. Chain breadth is distribution, capped at ' + m.chain_cap + ' extra chains. The early radar is every pre-token protocol below the watchlist floor, by TVL, and the live-token protocols are set aside with their market caps shown.' }),
+      el('h3', { text: 'Model sandbox' }),
+      el('p', { class: 'sub', text: 'Move a slider and the whole board recomputes live. Board.json keeps the radar-2 defaults; the sandbox is for checking how sensitive a rank is to the model.' }),
+      sandbox,
+      el('div', null, reset)
+    );
+  }
+
+  var dialog = el('dialog', { class: 'detail', id: 'detail', 'aria-labelledby': 'detail-title' });
+  dialog.addEventListener('close', function () { state.selected = null; writeHash(); });
+
+  function openDetail(slug) {
+    var row = DATA.rows.filter(function (r) { return r.slug === slug; })[0];
+    if (!row) return;
+    state.selected = slug;
+    writeHash();
+    dialog.textContent = '';
+    var steps = farmSteps(row);
+    var value = displayValue(row);
+    dialog.appendChild(el('div', { class: 'detail-head' },
+      el('div', null,
+        el('span', { class: 'badge ' + (isWatchlist(row) ? '' : 'early'), text: 'Rank ' + row.rank + ' of ' + DATA.board_size + ' · ' + (isWatchlist(row) ? 'watchlist' : 'early') }),
+        el('h2', { id: 'detail-title', text: row.name }),
+        el('p', { class: 'sub', text: (row.category || 'Other') + ' on ' + (row.chains && row.chains.length ? row.chains.join(', ') : 'an unnamed chain') })
+      ),
+      el('button', { class: 'close', type: 'button', 'aria-label': 'Close details', text: 'Close', onclick: function () { dialog.close(); } })
+    ));
+    dialog.appendChild(el('section', { class: 'detail-section' },
+      el('h3', { text: 'Implied value' }),
+      el('div', { class: 'equation' },
+        el('div', null, el('span', { text: 'TVL' }), el('b', { class: 'num', text: fmtUsd(row.tvl_usd) })),
+        el('div', null, el('span', { text: 'Seven-day growth' }), el('b', { class: 'num', text: fmtPct(row.change_7d) })),
+        el('div', null, el('span', { text: 'Age with no token' }), el('b', { class: 'num', text: fmtAge(row.age_days) })),
+        el('div', null, el('span', { text: 'Chains' }), el('b', { class: 'num', text: String((row.chains || []).length) })),
+        el('div', null, el('span', { text: 'Growth multiplier' }), el('b', { class: 'num', text: String(row.growth_multiplier) })),
+        el('div', null, el('span', { text: 'Maturity multiplier' }), el('b', { class: 'num', text: String(row.maturity_multiplier) })),
+        el('div', null, el('span', { text: 'Chain multiplier' }), el('b', { class: 'num', text: String(row.chain_multiplier) })),
+        el('div', null, el('span', { text: 'Implied value' }), el('b', { class: 'num', text: fmtUsd(value) }))
+      ),
+      el('p', { class: 'sub', text: 'Model ' + DATA.model_version + ': the same function scores every protocol. The page recomputes this row as ' + fmtUsd(impliedOf(row, DATA.model)) + (impliedOf(row, DATA.model) === row.implied_value_usd ? ', the same number board.json carries.' : ', which differs from the board: the data would be stale.') + ' This is an estimate, not a price.' })
+    ));
+    dialog.appendChild(el('section', { class: 'detail-section' },
+      el('h3', { text: 'Farm plan' }),
+      el('ol', { class: 'steps' }, steps.map(function (s) {
+        var at = s.indexOf(' Cost: ');
+        var action = at >= 0 ? s.slice(0, at) : s;
+        var tail = at >= 0 ? s.slice(at + 1) : '';
+        return el('li', null, el('b', { text: action }), el('span', { class: 'cost', text: tail }));
+      }))
+    ));
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+
+  function render() {
+    app.textContent = '';
+    var shell = el('div', { class: 'shell' });
+    shell.appendChild(hero());
+    shell.appendChild(facts());
+    shell.appendChild(controls());
+    shell.appendChild(state.tab === 'pre-token' ? boardTable() : liveTable());
+    if (state.tab === 'pre-token') shell.appendChild(modelPanel());
+    app.appendChild(shell);
+    app.setAttribute('aria-busy', 'false');
+    if (!dialog.isConnected) app.appendChild(dialog);
+    if (state.selected) openDetail(state.selected);
+  }
+
+  readHash();
+  render();
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && dialog.open) dialog.close();
+  });
+})();
+
+</script>
+</body>
+</html>
